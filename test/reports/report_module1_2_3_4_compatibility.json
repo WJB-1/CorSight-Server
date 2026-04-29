@@ -1,0 +1,117 @@
+{
+  "module": "Module 1-2-3-4 Compatibility",
+  "timestamp": "2026-03-22T12:53:37.668Z",
+  "total": 15,
+  "passed": 15,
+  "failed": 0,
+  "compatibilityReport": {
+    "chunkIdIntegration": [
+      {
+        "test": "chunkId 注入",
+        "input": {
+          "lat": 23.1364,
+          "lon": 113.3223
+        },
+        "output": "16_53397_28436",
+        "valid": true
+      }
+    ],
+    "coordinateFormat": [
+      {
+        "test": "度分秒转换",
+        "input": {
+          "lat": "23°8'10''",
+          "lon": "113°19'21''"
+        },
+        "output": {
+          "longitude": 113.32249999999999,
+          "latitude": 23.13611111111111
+        },
+        "valid": true
+      },
+      {
+        "test": "coordinates 结构",
+        "structure": "{ longitude, latitude }",
+        "order": "先经度后纬度（MongoDB 兼容）",
+        "valid": true
+      }
+    ],
+    "imageFormat": [
+      {
+        "test": "8方位图像",
+        "directions": [
+          "N",
+          "NE",
+          "E",
+          "SE",
+          "S",
+          "SW",
+          "W",
+          "NW"
+        ],
+        "valid": true
+      },
+      {
+        "test": "部分缺失处理",
+        "input": [
+          "N",
+          "E",
+          "W"
+        ],
+        "output": [
+          "N",
+          "E"
+        ],
+        "valid": true
+      }
+    ],
+    "dataFlow": [
+      {
+        "test": "完整数据流",
+        "input": "module3Data",
+        "output": "completeData with chunk_id",
+        "dataStructure": [
+          "point_id",
+          "coordinates",
+          "scene_description",
+          "images",
+          "status",
+          "timestamp",
+          "chunk_id",
+          "tile_x",
+          "tile_y",
+          "tile_z"
+        ],
+        "valid": true
+      }
+    ],
+    "backendCompatibility": [
+      {
+        "test": "BBox 接口格式",
+        "endpoint": "/api/map/chunk?bbox={minLon},{minLat},{maxLon},{maxLat}",
+        "sample": "113.3184814453125,23.13530868172966,113.323974609375,23.14035998788611",
+        "valid": true
+      },
+      {
+        "test": "坐标系统一致性",
+        "mapFormat": "GeoJSON [lon, lat]",
+        "pointFormat": "{ longitude, latitude }",
+        "compatible": true,
+        "valid": true
+      },
+      {
+        "test": "空间分区验证",
+        "chunk_id": "16_53397_28436",
+        "bbox": [
+          113.3184814453125,
+          23.13530868172966,
+          113.323974609375,
+          23.14035998788611
+        ],
+        "pointInBounds": true,
+        "valid": true
+      }
+    ]
+  },
+  "errors": []
+}

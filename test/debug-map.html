@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地图调试页面</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    #map-container {
+      width: 100%;
+      height: 500px;
+      border: 2px solid #4a90d9;
+      margin-top: 20px;
+    }
+    #log {
+      background: #f5f5f5;
+      padding: 10px;
+      margin-top: 20px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+      border: 1px solid #ddd;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>🗺️ 高德地图独立调试页面</h2>
+  <p>Key: 0beb99f14b04f13a734c81c032b9a8f1</p>
+  <button onclick="initMap()">初始化地图</button>
+  <button onclick="checkContainer()">检查容器</button>
+  <button onclick="clearLog()">清除日志</button>
+  <div id="map-container"></div>
+  <div id="log"></div>
+
+  <script src="https://webapi.amap.com/loader.js"></script>
+  <script>
+    let map = null;
+
+    function log(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+      logDiv.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    function checkContainer() {
+      const container = document.getElementById('map-container');
+      log('检查地图容器...', 'info');
+      log(`容器存在: ${!!container}`, container ? 'success' : 'error');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        log(`容器尺寸: ${rect.width}x${rect.height}`, 'info');
+        log(`容器位置: top=${rect.top}, left=${rect.left}`, 'info');
+      }
+    }
+
+    async function initMap() {
+      log('开始初始化地图...', 'info');
+      
+      if (typeof AMapLoader === 'undefined') {
+        log('❌ AMapLoader 未加载', 'error');
+        return;
+      }
+      log('✅ AMapLoader 存在', 'success');
+
+      try {
+        const AMap = await AMapLoader.load({
+          key: '0beb99f14b04f13a734c81c032b9a8f1',
+          version: '2.0',
+          plugins: ['AMap.Scale', 'AMap.ToolBar']
+        });
+        log('✅ AMap 加载成功', 'success');
+
+        const container = document.getElementById('map-container');
+        map = new AMap.Map(container, {
+          zoom: 15,
+          center: [116.397428, 39.90923]
+        });
+        log('✅ 地图实例创建成功', 'success');
+
+        map.addControl(new AMap.Scale());
+        map.addControl(new AMap.ToolBar({ position: 'RB' }));
+        log('✅ 控件添加成功', 'success');
+
+        // 添加标记
+        const marker = new AMap.Marker({
+          position: [116.397428, 39.90923],
+          title: '测试标记'
+        });
+        marker.setMap(map);
+        log('✅ 测试标记添加成功', 'success');
+
+      } catch (error) {
+        log(`❌ 错误: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // 页面加载后自动检查容器
+    window.onload = function() {
+      checkContainer();
+    };
+  </script>
+</body>
+</html>

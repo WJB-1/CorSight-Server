@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端 API 调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 前端 API 调试工具</h1>
+
+    <div>
+        <button onclick="testClassifiedModels()">测试 /api/config/llm/models/classified</button>
+        <button onclick="testSaveModels()">测试保存模型</button>
+        <button onclick="clearLog()">清除日志</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const BASE_URL = 'http://localhost:3002';
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            document.getElementById('results').appendChild(div);
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testClassifiedModels() {
+            log('正在测试 /api/config/llm/models/classified...');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/config/llm/models/classified`);
+                const data = await response.json();
+
+                if (data.success) {
+                    log(`✅ 成功! 视觉模型: ${data.data.vision.length}个, 文本模型: ${data.data.text.length}个`, 'success');
+                    log(`视觉模型示例: ${data.data.vision[0]?.name || '无'}`);
+                    log(`文本模型示例: ${data.data.text[0]?.name || '无'}`);
+
+                    // 填充下拉框测试
+                    fillSelects(data.data);
+                } else {
+                    log(`❌ 失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`, 'error');
+                if (error.message.includes('Failed to fetch')) {
+                    log('💡 提示: 后端服务可能未启动，请运行 npm start', 'error');
+                }
+            }
+        }
+
+        function fillSelects(data) {
+            log('\n模拟填充下拉框:');
+
+            const visionSelect = document.createElement('select');
+            visionSelect.innerHTML = '<option>请选择视觉模型</option>';
+            data.vision.forEach(m => {
+                visionSelect.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+            });
+
+            const textSelect = document.createElement('select');
+            textSelect.innerHTML = '<option>请选择文本模型</option>';
+            data.text.forEach(m => {
+                textSelect.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+            });
+
+            log(`视觉模型选项数: ${visionSelect.options.length}`);
+            log(`文本模型选项数: ${textSelect.options.length}`);
+        }
+
+        async function testSaveModels() {
+            log('\n正在测试保存模型...');
+
+            try {
+                // 先获取模型列表
+                const listRes = await fetch(`${BASE_URL}/api/config/llm/models/classified`);
+                const listData = await listRes.json();
+
+                if (!listData.success || listData.data.vision.length === 0) {
+                    log('❌ 无法获取模型列表', 'error');
+                    return;
+                }
+
+                const visionModel = listData.data.vision[0].name;
+                const textModel = listData.data.text[0]?.name || visionModel;
+
+                // 保存视觉模型
+                log(`保存视觉模型: ${visionModel}`);
+                const visionRes = await fetch(`${BASE_URL}/api/config/llm/models/vision`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model_name: visionModel })
+                });
+                const visionData = await visionRes.json();
+
+                if (visionData.success) {
+                    log(`✅ ${visionData.message}`, 'success');
+                } else {
+                    log(`❌ ${visionData.error}`, 'error');
+                }
+
+                // 保存文本模型
+                log(`保存文本模型: ${textModel}`);
+                const textRes = await fetch(`${BASE_URL}/api/config/llm/models/text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model_name: textModel })
+                });
+                const textData = await textRes.json();
+
+                if (textData.success) {
+                    log(`✅ ${textData.message}`, 'success');
+                } else {
+                    log(`❌ ${textData.error}`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ 保存失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动测试
+        window.onload = () => {
+            log('页面已加载，点击按钮开始测试');
+            testClassifiedModels();
+        };
+    </script>
+</body>
+
+</html>

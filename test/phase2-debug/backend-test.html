@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>后端通信全面测试</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #1890ff;
+      padding-bottom: 10px;
+    }
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .test-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .status-waiting { background: #faad14; color: white; }
+    .status-success { background: #52c41a; color: white; }
+    .status-error { background: #f5222d; color: white; }
+    .test-content {
+      background: #f8f9fa;
+      border-radius: 4px;
+      padding: 15px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .btn {
+      background: #1890ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    .btn:hover { background: #40a9ff; }
+    .btn:disabled { background: #d9d9d9; cursor: not-allowed; }
+    .summary {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .error-detail {
+      color: #f5222d;
+      background: #fff1f0;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .success-detail {
+      color: #52c41a;
+      background: #f6ffed;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 Blind_map 后端通信全面测试</h1>
+  
+  <div style="margin-bottom: 20px;">
+    <button class="btn" onclick="runAllTests()">运行全部测试</button>
+    <button class="btn" onclick="clearResults()">清空结果</button>
+  </div>
+
+  <!-- 测试 1: 后端连接测试 -->
+  <div class="test-section">
+    <div class="test-title">
+      测试 1: 后端服务连接
+      <span class="status-badge status-waiting" id="status-1">等待中</span>
+    </div>
+    <button class="btn" onclick="testBackendConnection()">单独测试</button>
+    <div class="test-content" id="result-1">点击按钮开始测试...</div>
+  </div>
+
+  <!-- 测试 2: 数据库采样点数据 -->
+  <div class="test-section">
+    <div class="test-title">
+      测试 2: 数据库采样点数据 (非图片)
+      <span class="status-badge status-waiting" id="status-2">等待中</span>
+    </div>
+    <button class="btn" onclick="testDatabaseData()">单独测试</button>
+    <div class="test-content" id="result-2">点击按钮开始测试...</div>
+  </div>
+
+  <!-- 测试 3: 图片元数据 -->
+  <div class="test-section">
+    <div class="test-title">
+      测试 3: 图片路径元数据
+      <span class="status-badge status-waiting" id="status-3">等待中</span>
+    </div>
+    <button class="btn" onclick="testImageMetadata()">单独测试</button>
+    <div class="test-content" id="result-3">点击按钮开始测试...</div>
+  </div>
+
+  <!-- 测试 4: 直接图片访问 -->
+  <div class="test-section">
+    <div class="test-title">
+      测试 4: 图片文件直接访问
+      <span class="status-badge status-waiting" id="status-4">等待中</span>
+    </div>
+    <button class="btn" onclick="testDirectImageAccess()">单独测试</button>
+    <div class="test-content" id="result-4">点击按钮开始测试...</div>
+  </div>
+
+  <!-- 测试 5: CORS 测试 -->
+  <div class="test-section">
+    <div class="test-title">
+      测试 5: CORS 跨域配置
+      <span class="status-badge status-waiting" id="status-5">等待中</span>
+    </div>
+    <button class="btn" onclick="testCORS()">单独测试</button>
+    <div class="test-content" id="result-5">点击按钮开始测试...</div>
+  </div>
+
+  <!-- 测试 6: 综合图片加载 -->
+  <div class="test-section">
+    <div class="test-title">
+      测试 6: 图片实际加载测试
+      <span class="status-badge status-waiting" id="status-6">等待中</span>
+    </div>
+    <button class="btn" onclick="testImageLoad()">单独测试</button>
+    <div class="test-content" id="result-6">点击按钮开始测试...</div>
+    <div id="image-preview" style="margin-top: 10px;"></div>
+  </div>
+
+  <div class="summary" id="summary" style="display: none;">
+    <h3>📊 测试总结</h3>
+    <div id="summary-content"></div>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'http://localhost:3000';
+    const TEST_IMAGE_URL = `${BACKEND_URL}/images/P001_N.jpg`;
+    
+    let testResults = {};
+
+    function updateStatus(testId, status, message) {
+      const badge = document.getElementById(`status-${testId}`);
+      const result = document.getElementById(`result-${testId}`);
+      
+      badge.className = 'status-badge ' + (status === 'success' ? 'status-success' : status === 'error' ? 'status-error' : 'status-waiting');
+      badge.textContent = status === 'success' ? '通过' : status === 'error' ? '失败' : '等待中';
+      
+      if (message) {
+        result.textContent = message;
+      }
+      
+      testResults[testId] = { status, message };
+    }
+
+    // 测试 1: 后端连接
+    async function testBackendConnection() {
+      updateStatus(1, 'waiting', '正在测试后端连接...');
+      
+      try {
+        const startTime = Date.now();
+        const response = await fetch(`${BACKEND_URL}/health`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+        const latency = Date.now() - startTime;
+        
+        if (response.ok) {
+          const data = await response.json();
+          updateStatus(1, 'success', 
+            `✅ 后端连接成功\n` +
+            `⏱️ 响应时间: ${latency}ms\n` +
+            `📋 服务信息: ${JSON.stringify(data, null, 2)}`
+          );
+        } else {
+          updateStatus(1, 'error', 
+            `❌ 后端返回错误\n` +
+            `状态码: ${response.status}\n` +
+            `状态文本: ${response.statusText}`
+          );
+        }
+      } catch (err) {
+        updateStatus(1, 'error', 
+          `❌ 连接失败\n` +
+          `错误类型: ${err.name}\n` +
+          `错误信息: ${err.message}\n\n` +
+          `可能原因:\n` +
+          `1. Blind_map 后端未启动\n` +
+          `2. 后端不在端口 3000\n` +
+          `3. 网络连接问题`
+        );
+      }
+    }
+
+    // 测试 2: 数据库采样点数据
+    async function testDatabaseData() {
+      updateStatus(2, 'waiting', '正在测试数据库数据...');
+      
+      try {
+        // 尝试多个可能的 API 端点
+        const endpoints = [
+          '/api/map/points',
+          '/api/map/sampling-points',
+          '/api/navigation/points'
+        ];
+        
+        let success = false;
+        let lastError = '';
+        
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+              method: 'GET',
+              mode: 'cors'
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              const points = Array.isArray(data) ? data : (data.data || data.points || []);
+              
+              updateStatus(2, 'success', 
+                `✅ 成功读取采样点数据\n` +
+                `🔗 端点: ${endpoint}\n` +
+                `📊 采样点数量: ${points.length}\n\n` +
+                `前3个采样点:\n` +
+                JSON.stringify(points.slice(0, 3), null, 2)
+              );
+              success = true;
+              break;
+            } else if (response.status !== 404) {
+              lastError = `端点 ${endpoint}: HTTP ${response.status}`;
+            }
+          } catch (e) {
+            lastError = `端点 ${endpoint}: ${e.message}`;
+          }
+        }
+        
+        if (!success) {
+          // 尝试直接读取 map_data.json
+          try {
+            const response = await fetch(`${BACKEND_URL}/map_data.json`, {
+              method: 'GET',
+              mode: 'cors'
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              updateStatus(2, 'success', 
+                `✅ 通过静态文件读取数据\n` +
+                `🔗 路径: /map_data.json\n` +
+                `📊 采样点数量: ${data.length}\n\n` +
+                `前3个采样点:\n` +
+                JSON.stringify(data.slice(0, 3), null, 2)
+              );
+            } else {
+              throw new Error('无法读取 map_data.json');
+            }
+          } catch (e) {
+            updateStatus(2, 'error', 
+              `❌ 无法读取数据库数据\n` +
+              `尝试的端点: ${endpoints.join(', ')}\n` +
+              `错误信息: ${lastError || e.message}\n\n` +
+              `可能原因:\n` +
+              `1. 数据库未连接\n` +
+              `2. API 端点不存在\n` +
+              `3. 数据未导入`
+            );
+          }
+        }
+      } catch (err) {
+        updateStatus(2, 'error', `❌ 测试失败: ${err.message}`);
+      }
+    }
+
+    // 测试 3: 图片元数据
+    async function testImageMetadata() {
+      updateStatus(3, 'waiting', '正在测试图片元数据...');
+      
+      try {
+        const response = await fetch(`${BACKEND_URL}/map_data.json`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.length > 0 && data[0].images) {
+            const firstPoint = data[0];
+            const imagePaths = Object.entries(firstPoint.images)
+              .map(([dir, path]) => `  ${dir}: ${path}`)
+              .join('\n');
+            
+            updateStatus(3, 'success', 
+              `✅ 找到图片元数据\n` +
+              `📍 采样点: ${firstPoint.point_id}\n` +
+              `🖼️ 图片路径:\n${imagePaths}\n\n` +
+              `预期图片URL格式:\n` +
+              `${BACKEND_URL}/images/${firstPoint.point_id}_N.jpg`
+            );
+          } else {
+            updateStatus(3, 'error', '❌ 数据中没有图片路径信息');
+          }
+        } else {
+          updateStatus(3, 'error', `❌ 无法读取数据: HTTP ${response.status}`);
+        }
+      } catch (err) {
+        updateStatus(3, 'error', `❌ 测试失败: ${err.message}`);
+      }
+    }
+
+    // 测试 4: 直接图片访问
+    async function testDirectImageAccess() {
+      updateStatus(4, 'waiting', '正在测试图片直接访问...');
+      
+      try {
+        const response = await fetch(TEST_IMAGE_URL, {
+          method: 'HEAD',
+          mode: 'cors'
+        });
+        
+        if (response.ok) {
+          const contentType = response.headers.get('Content-Type');
+          const contentLength = response.headers.get('Content-Length');
+          
+          updateStatus(4, 'success', 
+            `✅ 图片可访问\n` +
+            `🔗 URL: ${TEST_IMAGE_URL}\n` +
+            `📄 Content-Type: ${contentType}\n` +
+            `📦 文件大小: ${contentLength ? (contentLength / 1024).toFixed(2) + ' KB' : '未知'}`
+          );
+        } else {
+          updateStatus(4, 'error', 
+            `❌ 图片访问失败\n` +
+            `🔗 URL: ${TEST_IMAGE_URL}\n` +
+            `状态码: ${response.status}\n\n` +
+            `请检查:\n` +
+            `1. 图片文件是否存在: Blind_map/backend/public/images/P001_N.jpg\n` +
+            `2. 后端静态文件配置是否正确`
+          );
+        }
+      } catch (err) {
+        updateStatus(4, 'error', 
+          `❌ 访问失败\n` +
+          `错误: ${err.name}: ${err.message}\n\n` +
+          `可能原因:\n` +
+          `1. 后端未启动\n` +
+          `2. CORS 配置错误`
+        );
+      }
+    }
+
+    // 测试 5: CORS 测试
+    async function testCORS() {
+      updateStatus(5, 'waiting', '正在测试 CORS 配置...');
+      
+      try {
+        // 测试预检请求
+        const preflightResponse = await fetch(TEST_IMAGE_URL, {
+          method: 'OPTIONS',
+          mode: 'cors',
+          headers: {
+            'Origin': window.location.origin,
+            'Access-Control-Request-Method': 'GET'
+          }
+        });
+        
+        const allowOrigin = preflightResponse.headers.get('Access-Control-Allow-Origin');
+        const allowMethods = preflightResponse.headers.get('Access-Control-Allow-Methods');
+        
+        // 测试实际 GET 请求
+        const getResponse = await fetch(TEST_IMAGE_URL, {
+          method: 'GET',
+          mode: 'cors'
+        });
+        
+        const getAllowOrigin = getResponse.headers.get('Access-Control-Allow-Origin');
+        
+        updateStatus(5, 'success', 
+          `✅ CORS 配置正常\n\n` +
+          `OPTIONS 预检:\n` +
+          `  Access-Control-Allow-Origin: ${allowOrigin || '未设置'}\n` +
+          `  Access-Control-Allow-Methods: ${allowMethods || '未设置'}\n\n` +
+          `GET 请求:\n` +
+          `  Access-Control-Allow-Origin: ${getAllowOrigin || '未设置'}\n\n` +
+          `图片访问: ${getResponse.ok ? '成功' : '失败'}`
+        );
+      } catch (err) {
+        updateStatus(5, 'error', 
+          `❌ CORS 测试失败\n` +
+          `错误: ${err.message}\n\n` +
+          `请检查 Blind_map/backend/app.js 中的 CORS 配置:\n` +
+          `app.use((req, res, next) => {\n` +
+          `  res.header('Access-Control-Allow-Origin', '*');\n` +
+          `  ...\n` +
+          `});`
+        );
+      }
+    }
+
+    // 测试 6: 图片实际加载
+    function testImageLoad() {
+      updateStatus(6, 'waiting', '正在加载图片...');
+      document.getElementById('image-preview').innerHTML = '';
+      
+      return new Promise((resolve) => {
+        const img = new Image();
+        const startTime = Date.now();
+        
+        img.onload = () => {
+          const loadTime = Date.now() - startTime;
+          updateStatus(6, 'success', 
+            `✅ 图片加载成功\n` +
+            `⏱️ 加载时间: ${loadTime}ms\n` +
+            `📐 尺寸: ${img.width} x ${img.height}px`
+          );
+          
+          // 显示图片预览
+          img.style.maxWidth = '300px';
+          img.style.maxHeight = '200px';
+          img.style.border = '2px solid #52c41a';
+          img.style.borderRadius = '4px';
+          document.getElementById('image-preview').appendChild(img);
+          
+          resolve(true);
+        };
+        
+        img.onerror = () => {
+          updateStatus(6, 'error', 
+            `❌ 图片加载失败\n` +
+            `URL: ${TEST_IMAGE_URL}\n\n` +
+            `可能原因:\n` +
+            `1. 文件不存在\n` +
+            `2. 文件损坏\n` +
+            `3. 不是有效的图片格式`
+          );
+          resolve(false);
+        };
+        
+        img.src = TEST_IMAGE_URL;
+      });
+    }
+
+    // 运行全部测试
+    async function runAllTests() {
+      testResults = {};
+      document.getElementById('summary').style.display = 'none';
+      
+      await testBackendConnection();
+      await testDatabaseData();
+      await testImageMetadata();
+      await testDirectImageAccess();
+      await testCORS();
+      await testImageLoad();
+      
+      showSummary();
+    }
+
+    // 显示总结
+    function showSummary() {
+      const passed = Object.values(testResults).filter(r => r.status === 'success').length;
+      const failed = Object.values(testResults).filter(r => r.status === 'error').length;
+      const total = Object.keys(testResults).length;
+      
+      const summaryDiv = document.getElementById('summary');
+      const contentDiv = document.getElementById('summary-content');
+      
+      contentDiv.innerHTML = `
+        <p><strong>总测试数:</strong> ${total}</p>
+        <p><strong>✅ 通过:</strong> ${passed}</p>
+        <p><strong>❌ 失败:</strong> ${failed}</p>
+        <hr style="margin: 15px 0;">
+        ${failed > 0 ? `
+          <p style="color: #f5222d;"><strong>需要修复的问题:</strong></p>
+          <ul>
+            ${Object.entries(testResults)
+              .filter(([_, r]) => r.status === 'error')
+              .map(([id, _]) => `<li>测试 ${id} 失败</li>`)
+              .join('')}
+          </ul>
+        ` : '<p style="color: #52c41a;"><strong>🎉 所有测试通过！后端通信正常。</strong></p>'}
+      `;
+      
+      summaryDiv.style.display = 'block';
+    }
+
+    // 清空结果
+    function clearResults() {
+      for (let i = 1; i <= 6; i++) {
+        updateStatus(i, 'waiting', '点击按钮开始测试...');
+      }
+      document.getElementById('image-preview').innerHTML = '';
+      document.getElementById('summary').style.display = 'none';
+      testResults = {};
+    }
+  </script>
+</body>
+</html>

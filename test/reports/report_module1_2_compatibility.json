@@ -1,0 +1,115 @@
+{
+  "module": "Module 1-2 Compatibility",
+  "timestamp": "2026-03-22T12:53:12.083Z",
+  "total": 17,
+  "passed": 17,
+  "failed": 0,
+  "compatibilityReport": {
+    "chunkIdFormat": [
+      {
+        "test": "基本格式",
+        "sample": "16_53397_28436",
+        "valid": true
+      },
+      {
+        "test": "整数验证",
+        "z": 16,
+        "x": 53397,
+        "y": 28436,
+        "valid": true
+      }
+    ],
+    "bboxFormat": [
+      {
+        "test": "数组格式",
+        "sample": [
+          113.3184814453125,
+          23.13530868172966,
+          113.323974609375,
+          23.14035998788611
+        ],
+        "valid": true
+      },
+      {
+        "test": "坐标顺序",
+        "order": "minLon, minLat, maxLon, maxLat",
+        "sample": [
+          113.3184814453125,
+          23.13530868172966,
+          113.323974609375,
+          23.14035998788611
+        ],
+        "valid": true
+      },
+      {
+        "test": "字符串格式",
+        "sample": "113.3184814453125,23.13530868172966,113.323974609375,23.14035998788611",
+        "valid": true
+      }
+    ],
+    "coordinateOrder": [
+      {
+        "test": "参数顺序",
+        "signature": "getTile(lat, lon)",
+        "valid": true
+      },
+      {
+        "test": "BBox 输出顺序",
+        "standard": "GeoJSON/MongoDB [lon, lat]",
+        "order": [
+          "minLon",
+          "minLat",
+          "maxLon",
+          "maxLat"
+        ],
+        "valid": true
+      }
+    ],
+    "dataFlow": [
+      {
+        "test": "tile → bbox",
+        "input": {
+          "x": 53397,
+          "y": 28436,
+          "z": 16
+        },
+        "output": [
+          113.3184814453125,
+          23.13530868172966,
+          113.323974609375,
+          23.14035998788611
+        ],
+        "valid": true
+      },
+      {
+        "test": "chunkId → parse → bbox",
+        "input": "16_53397_28436",
+        "output": [
+          113.3184814453125,
+          23.13530868172966,
+          113.323974609375,
+          23.14035998788611
+        ],
+        "valid": true
+      },
+      {
+        "test": "九宫格 chunkIds 解析",
+        "count": 9,
+        "allValid": true,
+        "valid": true
+      }
+    ],
+    "edgeCases": [
+      {
+        "test": "度分秒输入",
+        "input": {
+          "lat": "23°8'11''",
+          "lon": "113°19'21''"
+        },
+        "output": "16_53397_28436",
+        "valid": true
+      }
+    ]
+  },
+  "errors": []
+}

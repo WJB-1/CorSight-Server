@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 3: 模拟 Vite 环境</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial; }
+    
+    /* 模拟主应用布局 */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    .header {
+      height: 60px;
+      background: #4a90d9;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+    
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: 300px;
+      background: #f5f5f5;
+      padding: 20px;
+      border-right: 1px solid #ddd;
+    }
+    
+    .map-container {
+      flex: 1;
+      position: relative;
+      background: #e5e7eb;
+    }
+    
+    #map-viewer {
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+    }
+    
+    #log {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 150px;
+      background: #333;
+      color: #0f0;
+      padding: 10px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000;
+    }
+    
+    button {
+      padding: 10px 20px;
+      margin: 5px 0;
+      width: 100%;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h3>🧭 模拟 Vite 环境</h3>
+    </div>
+    <div class="main">
+      <div class="sidebar">
+        <p><strong>侧边栏</strong></p>
+        <button onclick="initMap()">初始化地图</button>
+        <button onclick="checkState()">检查状态</button>
+        <button onclick="forceResize()">强制 Resize</button>
+        <hr>
+        <p>模拟 MapViewer 组件初始化流程</p>
+      </div>
+      <div class="map-container">
+        <div id="map-viewer"></div>
+      </div>
+    </div>
+  </div>
+  <div id="log"></div>
+
+  <script src="https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1"></script>
+  
+  <script type="module">
+    // 模拟 ES Module 环境
+    function log(msg, type = 'info') {
+      const div = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#fff';
+      div.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
+      div.scrollTop = div.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+
+    // 模拟 MapViewer 类
+    class MapViewer {
+      constructor(containerId) {
+        log('MapViewer.constructor() 开始');
+        this.container = document.getElementById(containerId);
+        this.map = null;
+        this.onReady = null;
+        
+        log(`容器检查: ${this.container ? '存在' : '不存在'}`);
+        if (this.container) {
+          const rect = this.container.getBoundingClientRect();
+          log(`容器尺寸: ${rect.width}x${rect.height}`);
+        }
+        
+        this.init();
+      }
+
+      init() {
+        log('MapViewer.init() 开始');
+        
+        if (typeof AMap === 'undefined') {
+          log('❌ AMap 未定义', 'error');
+          return;
+        }
+        log('✅ AMap 已定义');
+
+        // 加载插件
+        AMap.plugin(['AMap.Scale', 'AMap.ToolBar'], () => {
+          log('✅ 插件加载完成');
+          this.createMap();
+        });
+      }
+
+      createMap() {
+        log('createMap() 开始');
+        
+        try {
+          this.map = new AMap.Map(this.container, {
+            zoom: 15,
+            center: [116.397428, 39.90923],
+            viewMode: '2D'
+          });
+          log('✅ 地图实例创建成功', 'success');
+
+          this.map.addControl(new AMap.Scale());
+          this.map.addControl(new AMap.ToolBar({ position: 'RB' }));
+          log('✅ 控件添加成功');
+
+          if (this.onReady) {
+            log('📢 触发 onReady');
+            this.onReady(this.map);
+          }
+
+        } catch (e) {
+          log(`❌ 创建失败: ${e.message}`, 'error');
+        }
+      }
+    }
+
+    // 全局变量
+    window.mapViewer = null;
+
+    window.initMap = () => {
+      log('=== 开始初始化 ===');
+      window.mapViewer = new MapViewer('map-viewer');
+      window.mapViewer.onReady = (map) => {
+        log('✅ 地图就绪回调触发', 'success');
+        window.appMap = map;
+      };
+    };
+
+    window.checkState = () => {
+      log('=== 检查状态 ===');
+      log(`mapViewer: ${window.mapViewer ? '存在' : '不存在'}`);
+      log(`mapViewer.map: ${window.mapViewer?.map ? '存在' : '不存在'}`);
+      log(`appMap: ${window.appMap ? '存在' : '不存在'}`);
+      
+      const container = document.getElementById('map-viewer');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        log(`容器尺寸: ${rect.width}x${rect.height}`);
+        log(`子元素数: ${container.children.length}`);
+      }
+    };
+
+    window.forceResize = () => {
+      if (window.mapViewer?.map) {
+        window.mapViewer.map.resize();
+        log('✅ resize() 已调用');
+      } else {
+        log('❌ 地图不存在', 'error');
+      }
+    };
+
+    // 页面加载完成
+    window.onload = () => {
+      log('页面加载完成');
+      setTimeout(initMap, 500);
+    };
+  </script>
+</body>
+</html>

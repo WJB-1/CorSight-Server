@@ -1,0 +1,728 @@
+[
+  {
+    "point_id": "P001",
+    "coordinates": {
+      "longitude": "23°8'1''",
+      "latitude": "113°19'41''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P001_N.jpg",
+      "NE": "images/P001_NE.jpg",
+      "E": "images/P001_E.jpg",
+      "SE": "images/P001_SE.jpg",
+      "S": "images/P001_S.jpg",
+      "SW": "images/P001_SW.jpg",
+      "W": "images/P001_W.jpg",
+      "NW": "images/P001_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.328148,
+      "latitude": 23.133652
+    }
+  },
+  {
+    "point_id": "P002",
+    "coordinates": {
+      "longitude": "23°8'0''",
+      "latitude": "113°19'48''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P002_N.jpg",
+      "NE": "images/P002_NE.jpg",
+      "E": "images/P002_E.jpg",
+      "SE": "images/P002_SE.jpg",
+      "S": "images/P002_S.jpg",
+      "SW": "images/P002_SW.jpg",
+      "W": "images/P002_W.jpg",
+      "NW": "images/P002_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33009244444445,
+      "latitude": 23.133374222222223
+    }
+  },
+  {
+    "point_id": "P003",
+    "coordinates": {
+      "longitude": "23°7'58''",
+      "latitude": "113°19'50''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P003_N.jpg",
+      "NE": "images/P003_NE.jpg",
+      "E": "images/P003_E.jpg",
+      "SE": "images/P003_SE.jpg",
+      "S": "images/P003_S.jpg",
+      "SW": "images/P003_SW.jpg",
+      "W": "images/P003_W.jpg",
+      "NW": "images/P003_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33064800000001,
+      "latitude": 23.13281866666667
+    }
+  },
+  {
+    "point_id": "P004",
+    "coordinates": {
+      "longitude": "23°8'0''",
+      "latitude": "113°19'51''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P004_N.jpg",
+      "NE": "images/P004_NE.jpg",
+      "E": "images/P004_E.jpg",
+      "SE": "images/P004_SE.jpg",
+      "S": "images/P004_S.jpg",
+      "SW": "images/P004_SW.jpg",
+      "W": "images/P004_W.jpg",
+      "NW": "images/P004_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33092577777778,
+      "latitude": 23.133374222222223
+    }
+  },
+  {
+    "point_id": "P005",
+    "coordinates": {
+      "longitude": "23°8'0''",
+      "latitude": "113°20'1''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P005_N.jpg",
+      "NE": "images/P005_NE.jpg",
+      "E": "images/P005_E.jpg",
+      "SE": "images/P005_SE.jpg",
+      "S": "images/P005_S.jpg",
+      "SW": "images/P005_SW.jpg",
+      "W": "images/P005_W.jpg",
+      "NW": "images/P005_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33370355555556,
+      "latitude": 23.133374222222223
+    }
+  },
+  {
+    "point_id": "P006",
+    "coordinates": {
+      "longitude": "23°7'58''",
+      "latitude": "113°20'4''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P006_N.jpg",
+      "NE": "images/P006_NE.jpg",
+      "E": "images/P006_E.jpg",
+      "SE": "images/P006_SE.jpg",
+      "S": "images/P006_S.jpg",
+      "SW": "images/P006_SW.jpg",
+      "W": "images/P006_W.jpg",
+      "NW": "images/P006_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33453688888889,
+      "latitude": 23.13281866666667
+    }
+  },
+  {
+    "point_id": "P007",
+    "coordinates": {
+      "longitude": "23°7'59''",
+      "latitude": "113°20'7''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P007_N.jpg",
+      "NE": "images/P007_NE.jpg",
+      "E": "images/P007_E.jpg",
+      "SE": "images/P007_SE.jpg",
+      "S": "images/P007_S.jpg",
+      "SW": "images/P007_SW.jpg",
+      "W": "images/P007_W.jpg",
+      "NW": "images/P007_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33537022222222,
+      "latitude": 23.133096444444448
+    }
+  },
+  {
+    "point_id": "P008",
+    "coordinates": {
+      "longitude": "23°7'59''",
+      "latitude": "113°20'9''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P008_N.jpg",
+      "NE": "images/P008_NE.jpg",
+      "E": "images/P008_E.jpg",
+      "SE": "images/P008_SE.jpg",
+      "S": "images/P008_S.jpg",
+      "SW": "images/P008_SW.jpg",
+      "W": "images/P008_W.jpg",
+      "NW": "images/P008_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33592577777779,
+      "latitude": 23.133096444444448
+    }
+  },
+  {
+    "point_id": "P009",
+    "coordinates": {
+      "longitude": "23°7'59''",
+      "latitude": "113°20'11''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P009_N.jpg",
+      "NE": "images/P009_NE.jpg",
+      "E": "images/P009_E.jpg",
+      "SE": "images/P009_SE.jpg",
+      "S": "images/P009_S.jpg",
+      "SW": "images/P009_SW.jpg",
+      "W": "",
+      "NW": "images/P009_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33648133333334,
+      "latitude": 23.133096444444448
+    }
+  },
+  {
+    "point_id": "P010",
+    "coordinates": {
+      "longitude": "23°8'1''",
+      "latitude": "113°20'16''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P010_N.jpg",
+      "NE": "images/P010_NE.jpg",
+      "E": "images/P010_E.jpg",
+      "SE": "images/P010_SE.jpg",
+      "S": "images/P010_S.jpg",
+      "SW": "images/P010_SW.jpg",
+      "W": "images/P010_W.jpg",
+      "NW": "images/P010_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33787022222222,
+      "latitude": 23.133652
+    }
+  },
+  {
+    "point_id": "P011",
+    "coordinates": {
+      "longitude": "23°8'3''",
+      "latitude": "113°20'21''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P011_N.jpg",
+      "NE": "images/P011_NE.jpg",
+      "E": "images/P011_E.jpg",
+      "SE": "images/P011_SE.jpg",
+      "S": "images/P011_S.jpg",
+      "SW": "images/P011_SW.jpg",
+      "W": "images/P011_W.jpg",
+      "NW": "images/P011_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33925911111112,
+      "latitude": 23.13420755555556
+    }
+  },
+  {
+    "point_id": "P012",
+    "coordinates": {
+      "longitude": "23°8'5''",
+      "latitude": "113°20'25''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P012_N.jpg",
+      "NE": "images/P012_NE.jpg",
+      "E": "images/P012_E.jpg",
+      "SE": "images/P012_SE.jpg",
+      "S": "images/P012_S.jpg",
+      "SW": "images/P012_SW.jpg",
+      "W": "images/P012_W.jpg",
+      "NW": "images/P012_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.34037022222222,
+      "latitude": 23.134763111111113
+    }
+  },
+  {
+    "point_id": "P013",
+    "coordinates": {
+      "longitude": "23°8'7''",
+      "latitude": "113°20'32''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P013_N.jpg",
+      "NE": "images/P013_NE.jpg",
+      "E": "images/P013_E.jpg",
+      "SE": "images/P013_SE.jpg",
+      "S": "images/P013_S.jpg",
+      "SW": "images/P013_SW.jpg",
+      "W": "images/P013_W.jpg",
+      "NW": "images/P013_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.34231466666667,
+      "latitude": 23.13531866666667
+    }
+  },
+  {
+    "point_id": "P014",
+    "coordinates": {
+      "longitude": "23°8'11''",
+      "latitude": "113°20'41''"
+    },
+    "scene_description": "",
+    "images": {
+      "N": "images/P014_N.jpg",
+      "NE": "images/P014_NE.jpg",
+      "E": "images/P014_E.jpg",
+      "SE": "images/P014_SE.jpg",
+      "S": "images/P014_S.jpg",
+      "SW": "images/P014_SW.jpg",
+      "W": "images/P014_W.jpg",
+      "NW": "images/P014_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.34481466666666,
+      "latitude": 23.136429777777778
+    }
+  },
+  {
+    "point_id": "P015",
+    "coordinates": {
+      "longitude": "23°8'4''",
+      "latitude": "113°19'42''"
+    },
+    "scene_description": "体育中心地铁站D1口盲道分叉",
+    "images": {
+      "N": "images/P015_N.jpg",
+      "NE": "images/P015_NE.jpg",
+      "E": "images/P015_E.jpg",
+      "SE": "images/P015_SE.jpg",
+      "S": "images/P015_S.jpg",
+      "SW": "images/P015_SW.jpg",
+      "W": "images/P015_W.jpg",
+      "NW": "images/P015_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32842577777778,
+      "latitude": 23.134485333333334
+    }
+  },
+  {
+    "point_id": "P016",
+    "coordinates": {
+      "longitude": "23°7'59''",
+      "latitude": "113°19'42''"
+    },
+    "scene_description": "天河南街道天河路广东外经贸大厦附近",
+    "images": {
+      "N": "images/P016_N.jpg",
+      "NE": "images/P016_NE.jpg",
+      "E": "images/P016_E.jpg",
+      "SE": "images/P016_SE.jpg",
+      "S": "images/P016_S.jpg",
+      "SW": "images/P016_SW.jpg",
+      "W": "images/P016_W.jpg",
+      "NW": "images/P016_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32842577777778,
+      "latitude": 23.133096444444448
+    }
+  },
+  {
+    "point_id": "P017",
+    "coordinates": {
+      "longitude": "23°7'56''",
+      "latitude": "113°19'42''"
+    },
+    "scene_description": "天河南街道在广晟大厦附近",
+    "images": {
+      "N": "images/P017_N.jpg",
+      "NE": "images/P017_NE.jpg",
+      "E": "images/P017_E.jpg",
+      "SE": "images/P017_SE.jpg",
+      "S": "images/P017_S.jpg",
+      "SW": "images/P017_SW.jpg",
+      "W": "images/P017_W.jpg",
+      "NW": "images/P017_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32842577777778,
+      "latitude": 23.13226311111111
+    }
+  },
+  {
+    "point_id": "P018",
+    "coordinates": {
+      "longitude": "23°7'51''",
+      "latitude": "113°19'42''"
+    },
+    "scene_description": "天河南街道正佳广场附近",
+    "images": {
+      "N": "images/P018_N.jpg",
+      "NE": "images/P018_NE.jpg",
+      "E": "images/P018_E.jpg",
+      "SE": "images/P018_SE.jpg",
+      "S": "images/P018_S.jpg",
+      "SW": "images/P018_SW.jpg",
+      "W": "images/P018_W.jpg",
+      "NW": "images/P018_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32842577777778,
+      "latitude": 23.130874222222225
+    }
+  },
+  {
+    "point_id": "P019",
+    "coordinates": {
+      "longitude": "23°7'40''",
+      "latitude": "113°19'41''"
+    },
+    "scene_description": "天河南街道在体育西小区南区附近",
+    "images": {
+      "N": "images/P019_N.jpg",
+      "NE": "images/P019_NE.jpg",
+      "E": "images/P019_E.jpg",
+      "SE": "images/P019_SE.jpg",
+      "S": "images/P019_S.jpg",
+      "SW": "images/P019_SW.jpg",
+      "W": "images/P019_W.jpg",
+      "NW": "images/P019_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.328148,
+      "latitude": 23.12781866666667
+    }
+  },
+  {
+    "point_id": "P020",
+    "coordinates": {
+      "longitude": "23°7'34''",
+      "latitude": "113°19'40''"
+    },
+    "scene_description": "冼村街道在恒大中心附近",
+    "images": {
+      "N": "images/P020_N.jpg",
+      "NE": "images/P020_NE.jpg",
+      "E": "images/P020_E.jpg",
+      "SE": "images/P020_SE.jpg",
+      "S": "images/P020_S.jpg",
+      "SW": "images/P020_SW.jpg",
+      "W": "images/P020_W.jpg",
+      "NW": "images/P020_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32787022222223,
+      "latitude": 23.126152
+    }
+  },
+  {
+    "point_id": "P021",
+    "coordinates": {
+      "longitude": "23°7'33''",
+      "latitude": "113°19'40''"
+    },
+    "scene_description": "冼村街道在恒大中心附近",
+    "images": {
+      "N": "images/P021_N.jpg",
+      "NE": "images/P021_NE.jpg",
+      "E": "images/P021_E.jpg",
+      "SE": "images/P021_SE.jpg",
+      "S": "images/P021_S.jpg",
+      "SW": "images/P021_SW.jpg",
+      "W": "images/P021_W.jpg",
+      "NW": "images/P021_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32787022222223,
+      "latitude": 23.125874222222226
+    }
+  },
+  {
+    "point_id": "P022",
+    "coordinates": {
+      "longitude": "23°7'30''",
+      "latitude": "113°19'41''"
+    },
+    "scene_description": "冼村街道在维家思广场附近",
+    "images": {
+      "N": "images/P022_N.jpg",
+      "NE": "images/P022_NE.jpg",
+      "E": "images/P022_E.jpg",
+      "SE": "images/P022_SE.jpg",
+      "S": "images/P022_S.jpg",
+      "SW": "images/P022_SW.jpg",
+      "W": "images/P022_W.jpg",
+      "NW": "images/P022_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.328148,
+      "latitude": 23.125040888888893
+    }
+  },
+  {
+    "point_id": "P023",
+    "coordinates": {
+      "longitude": "23°7'26''",
+      "latitude": "113°19'41''"
+    },
+    "scene_description": "冼村街道在维家思广场附近",
+    "images": {
+      "N": "images/P023_N.jpg",
+      "NE": "images/P023_NE.jpg",
+      "E": "images/P023_E.jpg",
+      "SE": "images/P023_SE.jpg",
+      "S": "images/P023_S.jpg",
+      "SW": "images/P023_SW.jpg",
+      "W": "images/P023_W.jpg",
+      "NW": "images/P023_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.328148,
+      "latitude": 23.123929777777782
+    }
+  },
+  {
+    "point_id": "P024",
+    "coordinates": {
+      "longitude": "23°7'22''",
+      "latitude": "113°19'38''"
+    },
+    "scene_description": "冼村街道在维家思广场附近",
+    "images": {
+      "N": "images/P024_N.jpg",
+      "NE": "images/P024_NE.jpg",
+      "E": "images/P024_E.jpg",
+      "SE": "images/P024_SE.jpg",
+      "S": "images/P024_S.jpg",
+      "SW": "images/P024_SW.jpg",
+      "W": "images/P024_W.jpg",
+      "NW": "images/P024_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32731466666667,
+      "latitude": 23.12281866666667
+    }
+  },
+  {
+    "point_id": "P025",
+    "coordinates": {
+      "longitude": "23°7'22''",
+      "latitude": "113°19'32''"
+    },
+    "scene_description": "冼村街道在花城汇广场附近",
+    "images": {
+      "N": "images/P025_N.jpg",
+      "NE": "images/P025_NE.jpg",
+      "E": "images/P025_E.jpg",
+      "SE": "images/P025_SE.jpg",
+      "S": "images/P025_S.jpg",
+      "SW": "images/P025_SW.jpg",
+      "W": "images/P025_W.jpg",
+      "NW": "images/P025_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.325648,
+      "latitude": 23.12281866666667
+    }
+  },
+  {
+    "point_id": "P026",
+    "coordinates": {
+      "longitude": "23°7'21''",
+      "latitude": "113°19'32''"
+    },
+    "scene_description": "冼村街道在花城汇购物中心中区附近",
+    "images": {
+      "N": "images/P026_N.jpg",
+      "NE": "images/P026_NE.jpg",
+      "E": "images/P026_E.jpg",
+      "SE": "images/P026_SE.jpg",
+      "S": "images/P026_S.jpg",
+      "SW": "images/P026_SW.jpg",
+      "W": "images/P026_W.jpg",
+      "NW": "images/P026_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.325648,
+      "latitude": 23.122540888888892
+    }
+  },
+  {
+    "point_id": "P027",
+    "coordinates": {
+      "longitude": "23°7'15''",
+      "latitude": "113°19'35''"
+    },
+    "scene_description": "冼村街道花城汇购物中心附近",
+    "images": {
+      "N": "images/P027_N.jpg",
+      "NE": "images/P027_NE.jpg",
+      "E": "images/P027_E.jpg",
+      "SE": "images/P027_SE.jpg",
+      "S": "images/P027_S.jpg",
+      "SW": "images/P027_SW.jpg",
+      "W": "images/P027_W.jpg",
+      "NW": "images/P027_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32648133333333,
+      "latitude": 23.120874222222223
+    }
+  },
+  {
+    "point_id": "P028",
+    "coordinates": {
+      "longitude": "23°7'15''",
+      "latitude": "113°19'35''"
+    },
+    "scene_description": "冼村街道在高德置地广场秋广场附近",
+    "images": {
+      "N": "images/P028_N.jpg",
+      "NE": "images/P028_NE.jpg",
+      "E": "images/P028_E.jpg",
+      "SE": "images/P028_SE.jpg",
+      "S": "images/P028_S.jpg",
+      "SW": "images/P028_SW.jpg",
+      "W": "images/P028_W.jpg",
+      "NW": "images/P028_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32648133333333,
+      "latitude": 23.120874222222223
+    }
+  },
+  {
+    "point_id": "P029",
+    "coordinates": {
+      "longitude": "23°7'11''",
+      "latitude": "113°19'34''"
+    },
+    "scene_description": "冼村街道在高德置地广场冬广场附近",
+    "images": {
+      "N": "images/P029_N.jpg",
+      "NE": "images/P029_NE.jpg",
+      "E": "images/P029_E.jpg",
+      "SE": "images/P029_SE.jpg",
+      "S": "images/P029_S.jpg",
+      "SW": "images/P029_SW.jpg",
+      "W": "images/P029_W.jpg",
+      "NW": "images/P029_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32620355555557,
+      "latitude": 23.119763111111112
+    }
+  },
+  {
+    "point_id": "P030",
+    "coordinates": {
+      "longitude": "23°7'10''",
+      "latitude": "113°19'34''"
+    },
+    "scene_description": "冼村街道在花城汇购物中心附近",
+    "images": {
+      "N": "images/P030_N.jpg",
+      "NE": "images/P030_NE.jpg",
+      "E": "images/P030_E.jpg",
+      "SE": "images/P030_SE.jpg",
+      "S": "images/P030_S.jpg",
+      "SW": "images/P030_SW.jpg",
+      "W": "images/P030_W.jpg",
+      "NW": "images/P030_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32620355555557,
+      "latitude": 23.119485333333337
+    }
+  },
+  {
+    "point_id": "P031",
+    "coordinates": {
+      "longitude": "23°7'7''",
+      "latitude": "113°19'36''"
+    },
+    "scene_description": "猎德街道在广州k11购物艺术中心附近",
+    "images": {
+      "N": "images/P031_N.jpg",
+      "NE": "images/P031_NE.jpg",
+      "E": "images/P031_E.jpg",
+      "SE": "images/P031_SE.jpg",
+      "S": "images/P031_S.jpg",
+      "SW": "images/P031_SW.jpg",
+      "W": "images/P031_W.jpg",
+      "NW": "images/P031_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32675911111112,
+      "latitude": 23.118652000000004
+    }
+  },
+  {
+    "point_id": "P032",
+    "coordinates": {
+      "longitude": "23°7'7''",
+      "latitude": "113°19'36''"
+    },
+    "scene_description": "猎德街道在k11艺术购物中心附近",
+    "images": {
+      "N": "images/P032_N.jpg",
+      "NE": "images/P032_NE.jpg",
+      "E": "images/P032_E.jpg",
+      "SE": "images/P032_SE.jpg",
+      "S": "images/P032_S.jpg",
+      "SW": "images/P032_SW.jpg",
+      "W": "images/P032_W.jpg",
+      "NW": "images/P032_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.32675911111112,
+      "latitude": 23.118652000000004
+    }
+  },
+  {
+    "point_id": "P033",
+    "coordinates": {
+      "longitude": "23°7'5''",
+      "latitude": "113°19'57''"
+    },
+    "scene_description": "猎德街道在猎德高德汇优托邦附近",
+    "images": {
+      "N": "images/P033_N.jpg",
+      "NE": "images/P033_NE.jpg",
+      "E": "images/P033_E.jpg",
+      "SE": "images/P033_SE.jpg",
+      "S": "images/P033_S.jpg",
+      "SW": "images/P033_SW.jpg",
+      "W": "images/P033_W.jpg",
+      "NW": "images/P033_NW.jpg"
+    },
+    "corrected_decimal": {
+      "longitude": 113.33259244444444,
+      "latitude": 23.118096444444447
+    }
+  }
+]

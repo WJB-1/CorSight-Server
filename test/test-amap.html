@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>高德地图调试工具</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #log { background: #f5f5f5; padding: 10px; margin-top: 10px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+    #map { width: 100%; height: 400px; margin-top: 10px; border: 1px solid #ccc; }
+    button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>🗺️ 高德地图 API 调试工具</h2>
+  <p>Key: 0beb99f14b04f13a734c81c032b9a8f1</p>
+  <button onclick="testBasic()">1. 测试基本加载</button>
+  <button onclick="testPlugin()">2. 测试插件加载</button>
+  <button onclick="testMap()">3. 测试完整地图</button>
+  <button onclick="clearLog()">清除日志</button>
+  <div id="log"></div>
+  <div id="map"></div>
+
+  <!-- 高德地图 SDK - 与项目使用相同的 Key -->
+  <script src="https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1"></script>
+  
+  <script>
+    function log(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+      logDiv.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    // 测试 1: 基本加载
+    function testBasic() {
+      log('=== 测试基本加载 ===', 'info');
+      
+      if (typeof AMap === 'undefined') {
+        log('❌ AMap 未定义 - 检查网络或 Key 是否有效', 'error');
+        return;
+      }
+      
+      log('✅ AMap 对象存在', 'success');
+      log(`AMap 版本: ${AMap?.version || 'unknown'}`, 'info');
+      
+      // 检查关键方法
+      const methods = ['Map', 'Marker', 'Pixel', 'plugin'];
+      methods.forEach(method => {
+        if (AMap[method]) {
+          log(`✅ AMap.${method} 存在`, 'success');
+        } else {
+          log(`❌ AMap.${method} 不存在`, 'error');
+        }
+      });
+    }
+
+    // 测试 2: 插件加载
+    function testPlugin() {
+      log('=== 测试插件加载 ===', 'info');
+      
+      if (typeof AMap === 'undefined') {
+        log('❌ AMap 未定义', 'error');
+        return;
+      }
+
+      const plugins = ['AMap.Scale', 'AMap.ToolBar', 'AMap.Geolocation'];
+      
+      log(`开始加载插件: ${plugins.join(', ')}`, 'info');
+      
+      try {
+        AMap.plugin(plugins, function(status) {
+          log(`插件加载回调触发, status: ${JSON.stringify(status)}`, 'info');
+          
+          if (status === 'complete') {
+            log('✅ 所有插件加载成功', 'success');
+          } else if (status === 'error') {
+            log('❌ 插件加载失败', 'error');
+          } else {
+            log(`⚠️ 未知状态: ${status}`, 'error');
+          }
+          
+          // 检查插件类是否存在
+          plugins.forEach(plugin => {
+            const className = plugin.replace('AMap.', '');
+            if (AMap[className]) {
+              log(`✅ AMap.${className} 可用`, 'success');
+            } else {
+              log(`❌ AMap.${className} 不可用`, 'error');
+            }
+          });
+        });
+      } catch (e) {
+        log(`❌ 插件加载异常: ${e.message}`, 'error');
+      }
+    }
+
+    // 测试 3: 完整地图
+    function testMap() {
+      log('=== 测试完整地图 ===', 'info');
+      
+      const mapContainer = document.getElementById('map');
+      mapContainer.innerHTML = '';
+      
+      try {
+        // 先加载插件
+        AMap.plugin(['AMap.Scale', 'AMap.ToolBar'], function(status) {
+          log(`插件加载状态: ${status}`, 'info');
+          
+          if (status !== 'complete') {
+            log('❌ 插件加载失败，跳过地图初始化', 'error');
+            return;
+          }
+          
+          log('插件加载完成，开始初始化地图', 'info');
+          
+          try {
+            const map = new AMap.Map('map', {
+              zoom: 15,
+              center: [116.397428, 39.90923],
+              viewMode: '2D'
+            });
+            
+            log('✅ 地图实例创建成功', 'success');
+            
+            // 添加控件
+            map.addControl(new AMap.Scale());
+            log('✅ Scale 控件添加成功', 'success');
+            
+            map.addControl(new AMap.ToolBar({ position: 'RB' }));
+            log('✅ ToolBar 控件添加成功', 'success');
+            
+            // 添加测试标记
+            const marker = new AMap.Marker({
+              position: [116.397428, 39.90923],
+              title: '测试标记'
+            });
+            marker.setMap(map);
+            log('✅ 测试标记添加成功', 'success');
+            
+          } catch (e) {
+            log(`❌ 地图初始化失败: ${e.message}`, 'error');
+          }
+        });
+      } catch (e) {
+        log(`❌ 测试失败: ${e.message}`, 'error');
+      }
+    }
+
+    // 页面加载时自动测试
+    window.onload = function() {
+      log('页面加载完成', 'info');
+      setTimeout(testBasic, 500);
+    };
+  </script>
+</body>
+</html>

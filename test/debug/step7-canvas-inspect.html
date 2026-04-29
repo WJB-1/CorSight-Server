@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 7: Canvas 渲染深度检查</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial; background: #1a1a1a; color: #fff; }
+    
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    
+    .sidebar {
+      width: 500px;
+      background: #2d2d2d;
+      padding: 15px;
+      overflow-y: auto;
+      border-right: 1px solid #444;
+    }
+    
+    .map-wrapper {
+      flex: 1;
+      position: relative;
+      background: #000;
+    }
+    
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    
+    h3 { margin: 0 0 15px 0; color: #4fc3f7; border-bottom: 2px solid #4fc3f7; padding-bottom: 10px; }
+    h4 { margin: 15px 0 10px 0; color: #81c784; }
+    
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 5px 0;
+      background: #4fc3f7;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    button:hover { background: #29b6f6; }
+    button.danger { background: #ef5350; color: #fff; }
+    button.success { background: #66bb6a; color: #000; }
+    
+    .log-panel {
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    
+    .log-line { margin: 2px 0; }
+    .error { color: #ef5350; }
+    .success { color: #66bb6a; }
+    .warning { color: #ffa726; }
+    .info { color: #42a5f5; }
+    
+    .info-panel {
+      background: #333;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+    
+    .highlight {
+      background: #ffeb3b;
+      color: #000;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    
+    .canvas-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      font-size: 11px;
+    }
+    
+    .canvas-item {
+      background: #444;
+      padding: 5px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h3>🔬 Step 7: Canvas 渲染检查</h3>
+      
+      <button onclick="createMap()">1. 创建地图</button>
+      <button onclick="inspectCanvas()">2. 检查 Canvas</button>
+      <button class="success" onclick="forceCanvasRender()">3. 强制渲染测试</button>
+      <button onclick="testWebGL()">4. 检查 WebGL 支持</button>
+      <button class="danger" onclick="diagnoseIssue()">5. 问题诊断</button>
+      
+      <div class="info-panel" id="status-panel">
+        <strong>状态:</strong> 等待操作...
+      </div>
+      
+      <h4>Canvas 信息</h4>
+      <div class="canvas-info" id="canvas-info">
+        <div class="canvas-item">Canvas 数量: <span id="canvas-count">-</span></div>
+        <div class="canvas-item">WebGL: <span id="webgl-status">-</span></div>
+        <div class="canvas-item">尺寸: <span id="canvas-size">-</span></div>
+        <div class="canvas-item">可见性: <span id="canvas-visible">-</span></div>
+      </div>
+      
+      <div class="log-panel" id="log"></div>
+    </div>
+    
+    <div class="map-wrapper">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script src="https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1"></script>
+  
+  <script>
+    let map = null;
+    
+    function log(msg, type = 'info') {
+      const panel = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${time}] ${msg}`;
+      panel.appendChild(div);
+      panel.scrollTop = panel.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+    
+    function updateStatus(msg) {
+      document.getElementById('status-panel').innerHTML = msg;
+    }
+
+    window.createMap = () => {
+      log('=== 创建地图 ===');
+      
+      if (map) {
+        map.destroy();
+        map = null;
+      }
+      
+      const container = document.getElementById('map');
+      container.innerHTML = '';
+      
+      try {
+        map = new AMap.Map('map', {
+          zoom: 15,
+          center: [116.397428, 39.90923],
+          viewMode: '2D'
+        });
+        
+        log('✅ 地图实例创建成功', 'success');
+        updateStatus('地图已创建');
+        
+        // 监听 complete 事件
+        map.on('complete', () => {
+          log('✅ 地图 complete 事件触发', 'success');
+        });
+        
+        // 延迟检查 canvas
+        setTimeout(inspectCanvas, 2000);
+        
+      } catch (e) {
+        log(`❌ 错误: ${e.message}`, 'error');
+      }
+    };
+
+    window.inspectCanvas = () => {
+      log('=== 检查 Canvas ===');
+      
+      const container = document.getElementById('map');
+      const allCanvas = container.querySelectorAll('canvas');
+      
+      log(`找到 ${allCanvas.length} 个 canvas 元素`);
+      
+      document.getElementById('canvas-count').textContent = allCanvas.length;
+      
+      if (allCanvas.length === 0) {
+        log('❌ 没有找到 canvas 元素！', 'error');
+        log('高德地图 2.0 应该使用 canvas 渲染瓦片', 'warning');
+        
+        // 检查是否有其他渲染元素
+        const allDivs = container.querySelectorAll('div');
+        log(`容器中有 ${allDivs.length} 个 div 元素`);
+        
+        // 检查容器内部HTML
+        log('容器内部结构预览:');
+        const html = container.innerHTML.substring(0, 500);
+        log(html);
+        
+        updateStatus('<span class="error">没有找到 Canvas！</span>');
+        return;
+      }
+      
+      // 分析每个 canvas
+      allCanvas.forEach((canvas, i) => {
+        const rect = canvas.getBoundingClientRect();
+        const style = window.getComputedStyle(canvas);
+        
+        log(`Canvas ${i+1}:`);
+        log(`  尺寸: ${canvas.width}x${canvas.height}`);
+        log(`  显示尺寸: ${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`);
+        log(`  display: ${style.display}`);
+        log(`  visibility: ${style.visibility}`);
+        log(`  opacity: ${style.opacity}`);
+        log(`  z-index: ${style.zIndex}`);
+        
+        // 检查 canvas 是否有内容
+        try {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            let nonTransparent = 0;
+            for (let j = 3; j < pixels.length; j += 4) {
+              if (pixels[j] > 0) nonTransparent++;
+            }
+            log(`  非透明像素: ${nonTransparent}`);
+          }
+        } catch (e) {
+          log(`  无法读取 canvas: ${e.message}`);
+        }
+      });
+      
+      // 更新面板
+      if (allCanvas.length > 0) {
+        const first = allCanvas[0];
+        document.getElementById('canvas-size').textContent = `${first.width}x${first.height}`;
+        const style = window.getComputedStyle(first);
+        document.getElementById('canvas-visible').textContent = 
+          style.display !== 'none' && style.visibility !== 'hidden' ? '可见' : '隐藏';
+      }
+      
+      updateStatus(`<span class="success">找到 ${allCanvas.length} 个 Canvas</span>`);
+    };
+
+    window.forceCanvasRender = () => {
+      log('=== 强制渲染测试 ===');
+      
+      if (!map) {
+        log('❌ 地图未创建', 'error');
+        return;
+      }
+      
+      // 强制刷新
+      log('调用 map.resize()...');
+      map.resize();
+      
+      // 强制重新设置中心点
+      setTimeout(() => {
+        log('重新设置中心点...');
+        map.setCenter([116.397428, 39.90923]);
+        
+        // 改变缩放级别再改回来，强制重绘
+        setTimeout(() => {
+          log('触发缩放重绘...');
+          const currentZoom = map.getZoom();
+          map.setZoom(currentZoom + 1);
+          setTimeout(() => map.setZoom(currentZoom), 500);
+        }, 500);
+      }, 500);
+      
+      // 再次检查 canvas
+      setTimeout(inspectCanvas, 3000);
+    };
+
+    window.testWebGL = () => {
+      log('=== WebGL 支持检查 ===');
+      
+      const canvas = document.createElement('canvas');
+      let gl = null;
+      
+      try {
+        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      } catch (e) {
+        log(`❌ WebGL 错误: ${e.message}`, 'error');
+      }
+      
+      if (gl) {
+        log('✅ WebGL 支持正常', 'success');
+        document.getElementById('webgl-status').textContent = '支持';
+        
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+          const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+          const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+          log(`GPU 厂商: ${vendor}`);
+          log(`GPU 型号: ${renderer}`);
+        }
+      } else {
+        log('❌ WebGL 不支持！', 'error');
+        log('这可能是地图无法显示的原因', 'warning');
+        document.getElementById('webgl-status').textContent = '不支持';
+      }
+    };
+
+    window.diagnoseIssue = () => {
+      log('=== 问题诊断 ===');
+      
+      const container = document.getElementById('map');
+      const allCanvas = container.querySelectorAll('canvas');
+      
+      let diagnosis = [];
+      
+      // 1. 检查 WebGL
+      const testCanvas = document.createElement('canvas');
+      const hasWebGL = !!(testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl'));
+      
+      if (!hasWebGL) {
+        diagnosis.push({
+          severity: 'error',
+          msg: '浏览器不支持 WebGL，无法渲染高德地图 2.0'
+        });
+      }
+      
+      // 2. 检查 Canvas 数量
+      if (allCanvas.length === 0) {
+        diagnosis.push({
+          severity: 'error',
+          msg: '没有找到 Canvas 元素，瓦片渲染失败'
+        });
+      } else if (allCanvas.length < 3) {
+        diagnosis.push({
+          severity: 'warning',
+          msg: 'Canvas 数量过少，可能渲染异常'
+        });
+      }
+      
+      // 3. 检查 Canvas 尺寸
+      allCanvas.forEach((canvas, i) => {
+        if (canvas.width === 0 || canvas.height === 0) {
+          diagnosis.push({
+            severity: 'error',
+            msg: `Canvas ${i+1} 尺寸为 0`
+          });
+        }
+      });
+      
+      // 4. 检查地图容器
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        diagnosis.push({
+          severity: 'error',
+          msg: '地图容器尺寸为 0'
+        });
+      }
+      
+      // 输出诊断结果
+      if (diagnosis.length === 0) {
+        log('✅ 未发现问题，地图应该正常显示', 'success');
+        updateStatus('<span class="success">诊断通过</span>');
+      } else {
+        log('发现以下问题:');
+        diagnosis.forEach(d => {
+          log(`  [${d.severity.toUpperCase()}] ${d.msg}`, d.severity);
+        });
+        
+        const errors = diagnosis.filter(d => d.severity === 'error').length;
+        updateStatus(`<span class="error">发现 ${errors} 个错误</span>`);
+      }
+      
+      // 建议
+      log('');
+      log('=== 解决建议 ===', 'info');
+      
+      if (!hasWebGL) {
+        log('1. 检查浏览器设置，确保 WebGL 已启用');
+        log('2. 更新显卡驱动');
+        log('3. 尝试使用其他浏览器（Chrome/Firefox）');
+      }
+      
+      if (allCanvas.length === 0) {
+        log('4. 检查高德 Key 是否配置了 JSAPI 权限');
+        log('5. 检查是否配置了安全密钥');
+        log('6. 尝试添加 plugin=AMap.Map 参数');
+      }
+    };
+
+    // 页面加载
+    window.onload = () => {
+      log('页面加载完成');
+      log('请按顺序点击按钮进行测试');
+      testWebGL();
+    };
+  </script>
+</body>
+</html>

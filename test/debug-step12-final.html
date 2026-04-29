@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 12: 最终验证</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial; }
+    #map { width: 100%; height: 100vh; }
+    #log { 
+      position: fixed; 
+      top: 10px; 
+      left: 10px; 
+      background: rgba(0,0,0,0.8); 
+      color: #0f0; 
+      padding: 10px; 
+      max-width: 400px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="log"></div>
+
+  <script>
+    window._AMapSecurityConfig = {
+      securityJsCode: '3bbda8110ca478853e8500df55ee9a7d'
+    };
+  </script>
+  <script src="https://webapi.amap.com/loader.js"></script>
+  
+  <script>
+    const log = (msg) => {
+      const div = document.getElementById('log');
+      div.innerHTML += `<div>${new Date().toLocaleTimeString()} ${msg}</div>`;
+      console.log(msg);
+    };
+
+    async function init() {
+      log('等待 AMapLoader...');
+      
+      while (typeof AMapLoader === 'undefined') {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      
+      log('AMapLoader 可用，加载地图...');
+      
+      try {
+        const AMap = await AMapLoader.load({
+          key: "6e760d76e5650f0f9004c5412dcfc58e",
+          version: "2.0",
+          plugins: ['AMap.Scale', 'AMap.ToolBar']
+        });
+        
+        log('✅ AMap 加载成功: ' + AMap.version);
+        
+        const map = new AMap.Map('map', {
+          zoom: 15,
+          center: [116.397428, 39.90923]
+        });
+        
+        log('✅ 地图创建成功');
+        
+        map.addControl(new AMap.Scale());
+        map.addControl(new AMap.ToolBar({ position: 'RB' }));
+        
+        log('✅ 控件添加成功');
+        log('如果地图显示正常，说明配置正确！');
+        
+      } catch (err) {
+        log('❌ 错误: ' + err.message);
+      }
+    }
+    
+    init();
+  </script>
+</body>
+</html>

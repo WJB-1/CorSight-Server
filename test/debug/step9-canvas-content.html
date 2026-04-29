@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 9: Canvas 内容深度检查</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial; background: #1a1a1a; color: #fff; }
+    
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    
+    .sidebar {
+      width: 450px;
+      background: #2d2d2d;
+      padding: 15px;
+      overflow-y: auto;
+      border-right: 1px solid #444;
+    }
+    
+    .map-wrapper {
+      flex: 1;
+      position: relative;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #map {
+      flex: 1;
+      width: 100%;
+    }
+    
+    .canvas-preview {
+      height: 200px;
+      background: #333;
+      border-top: 2px solid #4fc3f7;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      overflow-x: auto;
+    }
+    
+    .preview-item {
+      text-align: center;
+    }
+    
+    .preview-item canvas {
+      border: 1px solid #666;
+      max-width: 300px;
+      max-height: 150px;
+    }
+    
+    .preview-item div {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 5px;
+    }
+    
+    h3 { margin: 0 0 15px 0; color: #4fc3f7; border-bottom: 2px solid #4fc3f7; padding-bottom: 10px; }
+    h4 { margin: 15px 0 10px 0; color: #81c784; }
+    
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 5px 0;
+      background: #4fc3f7;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    button:hover { background: #29b6f6; }
+    button.success { background: #66bb6a; color: #000; }
+    button.danger { background: #ef5350; color: #fff; }
+    button.warning { background: #ffa726; color: #000; }
+    
+    .log-panel {
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .log-line { margin: 2px 0; }
+    .error { color: #ef5350; }
+    .success { color: #66bb6a; }
+    .warning { color: #ffa726; }
+    .info { color: #42a5f5; }
+    
+    .info-box {
+      background: #333;
+      border-left: 4px solid #4fc3f7;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+    
+    .pixel-data {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      font-size: 10px;
+    }
+    
+    .pixel-cell {
+      background: #444;
+      padding: 3px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h3>🔬 Step 9: Canvas 内容检查</h3>
+      
+      <div class="info-box">
+        <strong>问题:</strong> Step 7/8 显示 Canvas 存在但黑屏<br>
+        <strong>目标:</strong> 检查 Canvas 实际像素内容
+      </div>
+      
+      <button onclick="createMap()">1. 创建地图</button>
+      <button class="warning" onclick="checkCanvasContent()">2. 检查 Canvas 像素</button>
+      <button onclick="captureCanvas()">3. 捕获 Canvas 图像</button>
+      <button onclick="forceRedraw()">4. 强制重绘</button>
+      <button class="success" onclick="testWebGLRender()">5. 测试 WebGL 渲染</button>
+      <button class="danger" onclick="diagnoseBlackScreen()">6. 黑屏诊断</button>
+      
+      <h4>像素统计</h4>
+      <div id="pixel-stats" class="info-box">
+        等待检查...
+      </div>
+      
+      <div class="log-panel" id="log"></div>
+    </div>
+    
+    <div class="map-wrapper">
+      <div id="map"></div>
+      <div class="canvas-preview" id="preview-area">
+        <div style="color:#666; padding: 20px;">Canvas 预览将显示在这里</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://webapi.amap.com/loader.js"></script>
+  
+  <script>
+    let map = null;
+    let AMap = null;
+    
+    function log(msg, type = 'info') {
+      const panel = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${time}] ${msg}`;
+      panel.appendChild(div);
+      panel.scrollTop = panel.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+
+    window.createMap = async () => {
+      log('=== 创建地图 (使用 Loader) ===');
+      
+      if (map) {
+        map.destroy();
+        map = null;
+      }
+      
+      document.getElementById('map').innerHTML = '';
+      
+      try {
+        AMap = await AMapLoader.load({
+          key: "0beb99f14b04f13a734c81c032b9a8f1",
+          version: "2.0",
+          plugins: ['AMap.Scale']
+        });
+        
+        map = new AMap.Map('map', {
+          zoom: 15,
+          center: [116.397428, 39.90923],
+          viewMode: '2D'
+        });
+        
+        log('✅ 地图创建成功', 'success');
+        
+        map.on('complete', () => {
+          log('✅ complete 事件触发', 'success');
+          setTimeout(checkCanvasContent, 2000);
+        });
+        
+      } catch (e) {
+        log(`❌ 错误: ${e.message}`, 'error');
+      }
+    };
+
+    window.checkCanvasContent = () => {
+      log('=== 检查 Canvas 像素内容 ===');
+      
+      const container = document.getElementById('map');
+      const canvases = container.querySelectorAll('canvas');
+      
+      if (canvases.length === 0) {
+        log('❌ 没有找到 Canvas', 'error');
+        return;
+      }
+      
+      log(`找到 ${canvases.length} 个 Canvas`);
+      
+      canvases.forEach((canvas, index) => {
+        log(`\n分析 Canvas ${index + 1}:`);
+        log(`  尺寸: ${canvas.width}x${canvas.height}`);
+        
+        try {
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            log('  无法获取 2D context (可能是 WebGL)', 'warning');
+            checkWebGLCanvas(canvas, index);
+            return;
+          }
+          
+          // 读取像素数据
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          
+          // 统计像素
+          let transparent = 0;
+          let black = 0;
+          let white = 0;
+          let colored = 0;
+          
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            
+            if (a === 0) {
+              transparent++;
+            } else if (r === 0 && g === 0 && b === 0) {
+              black++;
+            } else if (r === 255 && g === 255 && b === 255) {
+              white++;
+            } else {
+              colored++;
+            }
+          }
+          
+          const total = canvas.width * canvas.height;
+          
+          log(`  总像素: ${total}`);
+          log(`  透明: ${transparent} (${(transparent/total*100).toFixed(1)}%)`);
+          log(`  黑色: ${black} (${(black/total*100).toFixed(1)}%)`);
+          log(`  白色: ${white} (${(white/total*100).toFixed(1)}%)`);
+          log(`  彩色: ${colored} (${(colored/total*100).toFixed(1)}%)`);
+          
+          // 更新统计
+          document.getElementById('pixel-stats').innerHTML = `
+            <strong>Canvas ${index + 1}</strong><br>
+            尺寸: ${canvas.width}x${canvas.height}<br>
+            透明: ${(transparent/total*100).toFixed(1)}%<br>
+            黑色: ${(black/total*100).toFixed(1)}%<br>
+            白色: ${(white/total*100).toFixed(1)}%<br>
+            彩色: ${(colored/total*100).toFixed(1)}%
+          `;
+          
+          if (colored === 0 && black > total * 0.9) {
+            log('  ⚠️ 警告: Canvas 几乎全黑！', 'warning');
+          } else if (colored > 0) {
+            log('  ✅ Canvas 包含彩色像素 (可能有地图内容)', 'success');
+          }
+          
+        } catch (e) {
+          log(`  读取失败: ${e.message}`, 'error');
+        }
+      });
+    };
+
+    function checkWebGLCanvas(canvas, index) {
+      log('  尝试读取 WebGL Canvas...');
+      
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        log('  无法获取 WebGL context', 'error');
+        return;
+      }
+      
+      // 尝试读取像素
+      try {
+        const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+        gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        
+        let nonZero = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i] > 0 || pixels[i+1] > 0 || pixels[i+2] > 0) {
+            nonZero++;
+          }
+        }
+        
+        const total = canvas.width * canvas.height;
+        log(`  WebGL 像素非零: ${nonZero}/${total}`);
+        
+        if (nonZero === 0) {
+          log('  ⚠️ WebGL Canvas 全黑或透明', 'warning');
+        } else {
+          log(`  ✅ WebGL Canvas 有 ${nonZero} 个非零像素`, 'success');
+        }
+        
+      } catch (e) {
+        log(`  读取 WebGL 像素失败: ${e.message}`, 'error');
+      }
+    }
+
+    window.captureCanvas = () => {
+      log('=== 捕获 Canvas 图像 ===');
+      
+      const container = document.getElementById('map');
+      const canvases = container.querySelectorAll('canvas');
+      const previewArea = document.getElementById('preview-area');
+      
+      previewArea.innerHTML = '';
+      
+      if (canvases.length === 0) {
+        previewArea.innerHTML = '<div style="color:#666; padding: 20px;">没有 Canvas 可捕获</div>';
+        return;
+      }
+      
+      canvases.forEach((canvas, index) => {
+        // 创建缩略图
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 300;
+        thumbCanvas.height = 150;
+        
+        const ctx = thumbCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+        
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        item.innerHTML = `
+          <canvas id="thumb-${index}" width="300" height="150"></canvas>
+          <div>Canvas ${index + 1}<br>${canvas.width}x${canvas.height}</div>
+        `;
+        previewArea.appendChild(item);
+        
+        // 复制图像
+        const thumbCtx = document.getElementById(`thumb-${index}`).getContext('2d');
+        thumbCtx.drawImage(canvas, 0, 0, 300, 150);
+        
+        log(`  Canvas ${index + 1} 已捕获到预览区`);
+      });
+    };
+
+    window.forceRedraw = () => {
+      log('=== 强制重绘 ===');
+      
+      if (!map) {
+        log('❌ 地图未创建', 'error');
+        return;
+      }
+      
+      // 触发多种重绘方式
+      log('尝试强制重绘...');
+      
+      // 1. resize
+      map.resize();
+      
+      // 2. 改变中心点
+      setTimeout(() => {
+        const center = map.getCenter();
+        map.setCenter([center.lng + 0.001, center.lat]);
+        
+        // 3. 改回来
+        setTimeout(() => {
+          map.setCenter([center.lng, center.lat]);
+          log('重绘完成，请检查 Canvas 内容');
+        }, 500);
+      }, 500);
+    };
+
+    window.testWebGLRender = () => {
+      log('=== 测试 WebGL 渲染 ===');
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 300;
+      
+      const gl = canvas.getContext('webgl');
+      if (!gl) {
+        log('❌ 浏览器不支持 WebGL', 'error');
+        return;
+      }
+      
+      // 绘制一个彩色三角形
+      const vertices = new Float32Array([
+         0.0,  0.5, 0.0,
+        -0.5, -0.5, 0.0,
+         0.5, -0.5, 0.0
+      ]);
+      
+      const colors = new Float32Array([
+        1.0, 0.0, 0.0, 1.0,  // 红
+        0.0, 1.0, 0.0, 1.0,  // 绿
+        0.0, 0.0, 1.0, 1.0   // 蓝
+      ]);
+      
+      // 简单的顶点着色器
+      const vsSource = `
+        attribute vec4 aPosition;
+        attribute vec4 aColor;
+        varying vec4 vColor;
+        void main() {
+          gl_Position = aPosition;
+          vColor = aColor;
+        }
+      `;
+      
+      const fsSource = `
+        precision mediump float;
+        varying vec4 vColor;
+        void main() {
+          gl_FragColor = vColor;
+        }
+      `;
+      
+      function createShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }
+      
+      const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+      const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+      
+      const program = gl.createProgram();
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      gl.useProgram(program);
+      
+      // 创建缓冲区
+      const vBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+      
+      const aPosition = gl.getAttribLocation(program, 'aPosition');
+      gl.enableVertexAttribArray(aPosition);
+      gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+      
+      const cBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+      
+      const aColor = gl.getAttribLocation(program, 'aColor');
+      gl.enableVertexAttribArray(aColor);
+      gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+      
+      gl.clearColor(0.2, 0.2, 0.2, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      
+      // 显示结果
+      const previewArea = document.getElementById('preview-area');
+      previewArea.innerHTML = '';
+      
+      const item = document.createElement('div');
+      item.className = 'preview-item';
+      item.innerHTML = `
+        <canvas id="webgl-test" width="400" height="300" style="max-width:300px; max-height:150px;"></canvas>
+        <div>WebGL 测试<br>应该显示彩色三角形</div>
+      `;
+      previewArea.appendChild(item);
+      
+      const destCanvas = document.getElementById('webgl-test');
+      const destCtx = destCanvas.getContext('2d');
+      destCtx.drawImage(canvas, 0, 0, 400, 300);
+      
+      log('✅ WebGL 测试完成', 'success');
+      log('如果上方显示彩色三角形，说明 WebGL 工作正常');
+    };
+
+    window.diagnoseBlackScreen = () => {
+      log('=== 黑屏问题诊断 ===');
+      
+      let diagnosis = [];
+      
+      // 1. 检查容器背景色
+      const mapContainer = document.getElementById('map');
+      const style = window.getComputedStyle(mapContainer);
+      log(`地图容器背景色: ${style.backgroundColor}`);
+      
+      if (style.backgroundColor === 'rgb(0, 0, 0)' || style.backgroundColor === 'rgba(0, 0, 0, 0)') {
+        diagnosis.push({
+          level: 'warning',
+          msg: '地图容器背景为黑色或透明'
+        });
+      }
+      
+      // 2. 检查 Canvas
+      const canvases = mapContainer.querySelectorAll('canvas');
+      if (canvases.length === 0) {
+        diagnosis.push({
+          level: 'error',
+          msg: '没有 Canvas 元素'
+        });
+      } else {
+        // 检查 Canvas 尺寸
+        canvases.forEach((c, i) => {
+          if (c.width === 0 || c.height === 0) {
+            diagnosis.push({
+              level: 'error',
+              msg: `Canvas ${i+1} 尺寸为 0`
+            });
+          }
+          
+          // 检查 z-index
+          const cStyle = window.getComputedStyle(c);
+          log(`Canvas ${i+1} z-index: ${cStyle.zIndex}`);
+        });
+      }
+      
+      // 3. 检查是否被其他元素遮挡
+      const allElements = document.querySelectorAll('#map *');
+      let overlayCount = 0;
+      allElements.forEach(el => {
+        const elStyle = window.getComputedStyle(el);
+        if (elStyle.position === 'absolute' && elStyle.zIndex !== 'auto') {
+          overlayCount++;
+        }
+      });
+      log(`绝对定位元素数量: ${overlayCount}`);
+      
+      // 输出诊断结果
+      log('\n诊断结果:');
+      if (diagnosis.length === 0) {
+        log('✅ 未发现明显问题', 'success');
+        log('建议检查:');
+        log('1. 浏览器开发者工具 → Elements → 检查 Canvas 样式');
+        log('2. 检查是否有 div 覆盖在 Canvas 上');
+        log('3. 尝试更改 zoom 级别看是否加载瓦片');
+      } else {
+        diagnosis.forEach(d => {
+          log(`[${d.level.toUpperCase()}] ${d.msg}`, d.level);
+        });
+      }
+    };
+
+    window.onload = () => {
+      log('页面加载完成');
+      log('请按顺序点击按钮进行诊断');
+    };
+  </script>
+</body>
+</html>

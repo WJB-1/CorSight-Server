@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 4: 地图瓦片加载调试</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial; }
+    
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    .header {
+      height: 60px;
+      background: #e74c3c;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+    
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: 350px;
+      background: #f5f5f5;
+      padding: 15px;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+    }
+    
+    .map-container {
+      flex: 1;
+      position: relative;
+      background: #2c3e50;
+    }
+    
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .log-panel {
+      background: #1a1a1a;
+      color: #0f0;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+      border-radius: 4px;
+    }
+    
+    button {
+      padding: 8px 15px;
+      margin: 5px 0;
+      width: 100%;
+      cursor: pointer;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    
+    button:hover {
+      background: #2980b9;
+    }
+    
+    .error { color: #e74c3c; }
+    .success { color: #2ecc71; }
+    .warning { color: #f39c12; }
+    .info { color: #3498db; }
+    
+    .section {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: white;
+      border-radius: 4px;
+      border-left: 3px solid #3498db;
+    }
+    
+    h4 { margin: 0 0 10px 0; color: #333; }
+    
+    .tile-check {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      color: #0f0;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h3>🔍 Step 4: 地图瓦片加载调试</h3>
+    </div>
+    <div class="main">
+      <div class="sidebar">
+        <div class="section">
+          <h4>测试操作</h4>
+          <button onclick="testBasicMap()">1. 基础地图测试</button>
+          <button onclick="testWithSecurityConfig()">2. 带安全密钥测试</button>
+          <button onclick="checkNetworkRequests()">3. 检查网络请求</button>
+          <button onclick="checkTileElements()">4. 检查 DOM 瓦片</button>
+          <button onclick="checkMapStatus()">5. 完整诊断</button>
+        </div>
+        
+        <div class="section">
+          <h4>诊断结果</h4>
+          <div id="diagnostic-info" style="font-size: 12px;">等待测试...</div>
+        </div>
+        
+        <div class="log-panel" id="log"></div>
+      </div>
+      <div class="map-container">
+        <div id="map"></div>
+        <div class="tile-check" id="tile-status">瓦片: 未检查</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1"></script>
+  
+  <script>
+    let map = null;
+    let tileErrors = [];
+    
+    function log(msg, type = 'info') {
+      const div = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const colorClass = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+      div.innerHTML += `<div class="${colorClass}">[${time}] ${msg}</div>`;
+      div.scrollTop = div.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+    
+    function updateDiagnostic(info) {
+      document.getElementById('diagnostic-info').innerHTML = info;
+    }
+
+    // 监听图片加载
+    document.addEventListener('error', function(e) {
+      const target = e.target;
+      if (target.tagName === 'IMG' && target.src) {
+        if (target.src.includes('amap') || target.src.includes('autonavi')) {
+          log(`❌ 瓦片加载失败: ${target.src.substring(0, 50)}...`, 'error');
+          tileErrors.push(target.src);
+          updateTileStatus();
+        }
+      }
+    }, true);
+
+    function updateTileStatus() {
+      const statusEl = document.getElementById('tile-status');
+      const container = document.getElementById('map');
+      const images = container.querySelectorAll('img');
+      const amapImages = Array.from(images).filter(img => img.src && img.src.includes('amap'));
+      
+      statusEl.innerHTML = `
+        瓦片图片: ${amapImages.length}<br>
+        加载错误: ${tileErrors.length}
+      `;
+    }
+
+    window.testBasicMap = () => {
+      log('=== 基础地图测试 ===');
+      tileErrors = [];
+      
+      if (map) {
+        map.destroy();
+        map = null;
+      }
+      
+      const container = document.getElementById('map');
+      container.innerHTML = '';
+      
+      log(`容器尺寸: ${container.clientWidth}x${container.clientHeight}`);
+      
+      try {
+        map = new AMap.Map('map', {
+          zoom: 15,
+          center: [116.397428, 39.90923],
+          viewMode: '2D',
+          resizeEnable: true
+        });
+        
+        log('✅ 地图实例创建成功', 'success');
+        
+        map.on('complete', () => {
+          log('✅ 地图 complete 事件触发', 'success');
+        });
+        
+        setTimeout(() => {
+          checkTileElements();
+        }, 3000);
+        
+      } catch (e) {
+        log(`❌ 错误: ${e.message}`, 'error');
+      }
+    };
+
+    window.testWithSecurityConfig = () => {
+      log('=== 安全密钥测试 ===', 'warning');
+      log('检查 AMap 对象的安全配置...');
+      
+      if (typeof AMap === 'undefined') {
+        log('❌ AMap 未定义', 'error');
+        return;
+      }
+      
+      // 检查是否有 securityConfig
+      log(`AMap.version: ${AMap.version}`);
+      
+      // 尝试不同的加载方式
+      const script = document.createElement('script');
+      script.src = 'https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1&securityConfig=%7B%22securityJsCode%22%3A%22%22%7D';
+      log('尝试加载带 securityConfig 的脚本...', 'warning');
+      
+      updateDiagnostic(`
+        <span class="warning">检测到可能的安全密钥问题</span><br><br>
+        高德地图 2.0 版本可能需要：<br>
+        1. 在控制台配置安全密钥<br>
+        2. 添加白名单域名<br>
+        3. 启用 JSAPI Loader<br><br>
+        请访问：<br>
+        <a href="https://console.amap.com/dev/key/app" target="_blank">
+          高德控制台 → 应用管理 → 我的应用
+        </a>
+      `);
+    };
+
+    window.checkNetworkRequests = () => {
+      log('=== 网络请求检查 ===');
+      
+      // 检查控制台网络
+      log('请打开浏览器开发者工具 (F12) → Network 标签');
+      log('查看是否有 amap 相关的请求失败');
+      
+      // 检查当前页面加载的脚本
+      const scripts = document.querySelectorAll('script');
+      let amapScript = null;
+      scripts.forEach(s => {
+        if (s.src && s.src.includes('amap')) {
+          amapScript = s.src;
+          log(`高德脚本: ${s.src.substring(0, 80)}...`);
+        }
+      });
+      
+      updateDiagnostic(`
+        <span class="info">网络诊断</span><br><br>
+        脚本地址:<br>
+        ${amapScript ? amapScript.substring(0, 50) + '...' : '未找到'}<br><br>
+        请检查：<br>
+        1. 控制台是否有 CORS 错误<br>
+        2. Network 中是否有 403/404 请求<br>
+        3. 响应中是否有 "USERKEY_PLAT_NOMATCH" 错误
+      `);
+    };
+
+    window.checkTileElements = () => {
+      log('=== DOM 瓦片检查 ===');
+      
+      const container = document.getElementById('map');
+      const allImages = container.querySelectorAll('img');
+      const amapImages = Array.from(allImages).filter(img => img.src && img.src.includes('amap'));
+      
+      log(`总图片元素: ${allImages.length}`);
+      log(`高德瓦片图片: ${amapImages.length}`);
+      
+      if (amapImages.length === 0) {
+        log('❌ 未找到任何瓦片图片！', 'error');
+        log('可能原因：', 'warning');
+        log('1. 安全密钥未配置', 'warning');
+        log('2. Key 未绑定域名', 'warning');
+        log('3. Key 被限制或过期', 'warning');
+      } else {
+        log(`✅ 找到 ${amapImages.length} 个瓦片图片`, 'success');
+        
+        // 检查每个图片的加载状态
+        let loaded = 0;
+        let failed = 0;
+        amapImages.forEach(img => {
+          if (img.complete) {
+            if (img.naturalWidth > 0) {
+              loaded++;
+            } else {
+              failed++;
+            }
+          }
+        });
+        
+        log(`加载成功: ${loaded}, 失败: ${failed}`);
+      }
+      
+      updateTileStatus();
+      
+      updateDiagnostic(`
+        <span class="${amapImages.length === 0 ? 'error' : 'success'}">
+          瓦片图片: ${amapImages.length} 个
+        </span><br>
+        加载成功: ${amapImages.length - tileErrors.length}<br>
+        加载失败: ${tileErrors.length}
+      `);
+    };
+
+    window.checkMapStatus = () => {
+      log('=== 完整诊断 ===');
+      
+      let diagnosis = [];
+      
+      // 1. 检查 AMap
+      if (typeof AMap === 'undefined') {
+        diagnosis.push('❌ AMap 未加载');
+      } else {
+        diagnosis.push(`✅ AMap 已加载 (v${AMap.version})`);
+      }
+      
+      // 2. 检查地图实例
+      if (!map) {
+        diagnosis.push('❌ 地图实例未创建');
+      } else {
+        diagnosis.push('✅ 地图实例已创建');
+        try {
+          const center = map.getCenter();
+          diagnosis.push(`📍 中心点: ${center.lng}, ${center.lat}`);
+          diagnosis.push(`🔍 缩放级别: ${map.getZoom()}`);
+        } catch(e) {
+          diagnosis.push(`❌ 获取地图状态失败: ${e.message}`);
+        }
+      }
+      
+      // 3. 检查容器
+      const container = document.getElementById('map');
+      const rect = container.getBoundingClientRect();
+      diagnosis.push(`📐 容器尺寸: ${rect.width}x${rect.height}`);
+      
+      // 4. 检查瓦片
+      const amapImages = container.querySelectorAll('img[src*="amap"]');
+      diagnosis.push(`🖼️ 瓦片数量: ${amapImages.length}`);
+      
+      // 输出诊断
+      diagnosis.forEach(d => log(d));
+      
+      // 综合判断
+      let result = '';
+      if (amapImages.length === 0 && map) {
+        result = `
+          <span class="error">诊断结果：安全密钥问题</span><br><br>
+          地图实例创建成功，但瓦片未加载。<br>
+          最可能原因：<br>
+          1. 需要配置安全密钥 (securityJsCode)<br>
+          2. Key 需要绑定域名白名单<br><br>
+          解决步骤：<br>
+          1. 访问 <a href="https://console.amap.com" target="_blank">高德控制台</a><br>
+          2. 进入「应用管理」→「我的应用」<br>
+          3. 找到对应 Key，添加「安全密钥」<br>
+          4. 添加当前域名到白名单
+        `;
+      } else {
+        result = `<span class="success">诊断完成，请查看上方日志</span>`;
+      }
+      
+      updateDiagnostic(result);
+    };
+
+    // 页面加载完成后
+    window.onload = () => {
+      log('页面加载完成');
+      log('请按顺序点击测试按钮进行诊断');
+      
+      // 自动运行基础测试
+      setTimeout(() => {
+        testBasicMap();
+      }, 500);
+    };
+  </script>
+</body>
+</html>

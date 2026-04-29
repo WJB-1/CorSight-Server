@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 8: JSAPI Loader 解决方案</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial; background: #1a1a1a; color: #fff; }
+    
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    
+    .sidebar {
+      width: 500px;
+      background: #2d2d2d;
+      padding: 15px;
+      overflow-y: auto;
+      border-right: 1px solid #444;
+    }
+    
+    .map-wrapper {
+      flex: 1;
+      position: relative;
+      background: #000;
+    }
+    
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    
+    h3 { margin: 0 0 15px 0; color: #4fc3f7; border-bottom: 2px solid #4fc3f7; padding-bottom: 10px; }
+    h4 { margin: 15px 0 10px 0; color: #81c784; }
+    
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 5px 0;
+      background: #4fc3f7;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    button:hover { background: #29b6f6; }
+    button.success { background: #66bb6a; color: #000; }
+    button.danger { background: #ef5350; color: #fff; }
+    
+    .solution-box {
+      background: #333;
+      border-left: 4px solid #4fc3f7;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    
+    .solution-box.success {
+      border-left-color: #66bb6a;
+    }
+    
+    .solution-box.error {
+      border-left-color: #ef5350;
+    }
+    
+    .log-panel {
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .log-line { margin: 2px 0; }
+    .error { color: #ef5350; }
+    .success { color: #66bb6a; }
+    .warning { color: #ffa726; }
+    .info { color: #42a5f5; }
+    
+    .code-block {
+      background: #1a1a1a;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    
+    .highlight {
+      background: #ffeb3b;
+      color: #000;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h3>🚀 Step 8: JSAPI Loader 方案</h3>
+      
+      <div class="solution-box">
+        <strong>问题诊断:</strong><br>
+        Step 6 发现 <span class="highlight">0 个 Canvas</span> 元素<br>
+        这表明高德地图未能初始化渲染层<br><br>
+        <strong>根本原因:</strong><br>
+        直接加载 maps 脚本可能导致初始化问题，<br>
+        建议使用官方 <span class="highlight">JSAPI Loader</span>
+      </div>
+      
+      <button class="success" onclick="loadWithLoader()">1. 使用 JSAPI Loader 加载</button>
+      <button onclick="checkCanvasAfterLoad()">2. 检查 Canvas</button>
+      <button onclick="inspectMapInstance()">3. 检查地图实例</button>
+      <button class="danger" onclick="applyToProject()">4. 应用到项目</button>
+      
+      <div id="result-panel" class="solution-box" style="display:none;"></div>
+      
+      <h4>使用说明</h4>
+      <div class="code-block">// 正确加载方式
+<script src="https://webapi.amap.com/loader.js"></script>
+<script>
+AMapLoader.load({
+  key: '您的Key',
+  version: '2.0',
+  plugins: ['AMap.Scale']
+}).then((AMap) => {
+  const map = new AMap.Map('container');
+});
+</script></div>
+      
+      <div class="log-panel" id="log"></div>
+    </div>
+    
+    <div class="map-wrapper">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <!-- 使用 JSAPI Loader -->
+  <script src="https://webapi.amap.com/loader.js"></script>
+  
+  <script>
+    let map = null;
+    let AMap = null;
+    
+    function log(msg, type = 'info') {
+      const panel = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${time}] ${msg}`;
+      panel.appendChild(div);
+      panel.scrollTop = panel.scrollHeight;
+      console.log(`[${type}] ${msg}`);
+    }
+    
+    function showResult(html, isError = false) {
+      const panel = document.getElementById('result-panel');
+      panel.innerHTML = html;
+      panel.style.display = 'block';
+      panel.className = `solution-box ${isError ? 'error' : 'success'}`;
+    }
+
+    window.loadWithLoader = async () => {
+      log('=== 使用 JSAPI Loader 加载 ===');
+      
+      // 清理
+      if (map) {
+        map.destroy();
+        map = null;
+      }
+      document.getElementById('map').innerHTML = '';
+      
+      try {
+        log('调用 AMapLoader.load()...');
+        
+        AMap = await AMapLoader.load({
+          key: "0beb99f14b04f13a734c81c032b9a8f1",
+          version: "2.0",
+          plugins: ['AMap.Scale', 'AMap.ToolBar'],
+          // 添加安全密钥配置
+          securityConfig: {
+            securityJsCode: ''
+          }
+        });
+        
+        log('✅ Loader 加载成功', 'success');
+        log(`AMap.version: ${AMap.version}`);
+        
+        // 创建地图
+        log('创建地图实例...');
+        map = new AMap.Map('map', {
+          zoom: 15,
+          center: [116.397428, 39.90923],
+          viewMode: '2D'
+        });
+        
+        log('✅ 地图实例创建成功', 'success');
+        
+        // 添加控件
+        map.addControl(new AMap.Scale());
+        map.addControl(new AMap.ToolBar({ position: 'RB' }));
+        
+        // 监听事件
+        map.on('complete', () => {
+          log('✅ 地图加载完成 (complete事件)', 'success');
+          checkCanvasAfterLoad();
+        });
+        
+        // 延迟检查
+        setTimeout(checkCanvasAfterLoad, 3000);
+        
+        showResult('✅ JSAPI Loader 加载成功！等待 Canvas 检查...');
+        
+      } catch (error) {
+        log(`❌ 加载失败: ${error.message}`, 'error');
+        console.error(error);
+        showResult(`❌ 加载失败: ${error.message}<br><br>可能是安全密钥问题`, true);
+      }
+    };
+
+    window.checkCanvasAfterLoad = () => {
+      log('=== 检查 Canvas (Loader 方式) ===');
+      
+      const container = document.getElementById('map');
+      const canvases = container.querySelectorAll('canvas');
+      const images = container.querySelectorAll('img[src*="amap"]');
+      
+      log(`Canvas 数量: ${canvases.length}`);
+      log(`瓦片图片数量: ${images.length}`);
+      
+      if (canvases.length === 0 && images.length === 0) {
+        log('❌ 仍然没有渲染元素！', 'error');
+        
+        // 检查 div 结构
+        const divs = container.querySelectorAll('div');
+        log(`容器内 div 数量: ${divs.length}`);
+        
+        showResult(`
+          ❌ 问题依然存在<br><br>
+          Canvas: ${canvases.length}<br>
+          图片: ${images.length}<br><br>
+          <strong>可能原因:</strong><br>
+          1. Key 未启用 JSAPI 功能<br>
+          2. 需要配置安全密钥<br>
+          3. 域名白名单限制<br>
+          4. 浏览器安全设置
+        `, true);
+        
+      } else if (canvases.length > 0) {
+        log(`✅ 成功！找到 ${canvases.length} 个 Canvas`, 'success');
+        
+        // 检查 canvas 内容
+        let hasContent = false;
+        canvases.forEach((canvas, i) => {
+          if (canvas.width > 0 && canvas.height > 0) {
+            hasContent = true;
+            log(`  Canvas ${i+1}: ${canvas.width}x${canvas.height}`);
+          }
+        });
+        
+        if (hasContent) {
+          showResult(`
+            ✅ 解决方案成功！<br><br>
+            Canvas 数量: ${canvases.length}<br>
+            地图已正常渲染<br><br>
+            <strong>请将 JSAPI Loader 方式应用到项目中</strong>
+          `);
+        }
+      } else if (images.length > 0) {
+        log(`✅ 使用图片瓦片方式，数量: ${images.length}`, 'success');
+        showResult(`
+          ✅ 地图加载成功<br><br>
+          使用图片瓦片渲染<br>
+          瓦片数量: ${images.length}
+        `);
+      }
+    };
+
+    window.inspectMapInstance = () => {
+      log('=== 检查地图实例 ===');
+      
+      if (!map) {
+        log('❌ 地图实例不存在', 'error');
+        return;
+      }
+      
+      try {
+        log('检查地图状态:');
+        log(`  类型: ${typeof map}`);
+        log(`  构造函数: ${map.constructor.name}`);
+        
+        const center = map.getCenter();
+        log(`  中心点: ${center.lng}, ${center.lat}`);
+        
+        const zoom = map.getZoom();
+        log(`  缩放级别: ${zoom}`);
+        
+        const size = map.getSize();
+        log(`  地图尺寸: ${size.width}x${size.height}`);
+        
+        // 检查地图容器
+        const container = map.getContainer();
+        log(`  容器: ${container ? container.id || container.className : 'null'}`);
+        
+        log('✅ 地图实例状态正常', 'success');
+        
+      } catch (e) {
+        log(`❌ 检查失败: ${e.message}`, 'error');
+      }
+    };
+
+    window.applyToProject = () => {
+      const code = `<!DOCTYPE html>
+<html>
+<head>
+  <!-- 使用 JSAPI Loader -->
+  <script src="https://webapi.amap.com/loader.js"><\/script>
+<\/head>
+<body>
+  <div id="map-viewer"><\/div>
+  
+  <script type="module">
+    // 等待 Loader 加载完成
+    const AMap = await AMapLoader.load({
+      key: "0beb99f14b04f13a734c81c032b9a8f1",
+      version: "2.0",
+      plugins: ['AMap.Scale', 'AMap.ToolBar']
+    });
+    
+    // 创建地图
+    const map = new AMap.Map('map-viewer', {
+      zoom: 15,
+      center: [116.397428, 39.90923]
+    });
+    
+    // 添加控件
+    map.addControl(new AMap.Scale());
+    map.addControl(new AMap.ToolBar({ position: 'RB' }));
+  <\/script>
+<\/body>
+<\/html>`;
+      
+      log('=== 项目代码示例 ===', 'info');
+      log('将以下代码应用到 navigation_agent/frontend/index.html:');
+      console.log(code);
+      
+      showResult(`
+        <strong>应用到项目的步骤:</strong><br><br>
+        1. 将 loader.js 添加到 index.html 头部<br>
+        2. 修改 main.js 使用 Loader 方式加载<br>
+        3. 移除原来的 maps 脚本标签<br><br>
+        详细代码已输出到控制台
+      `);
+    };
+
+    window.onload = () => {
+      log('页面加载完成');
+      log('点击"使用 JSAPI Loader 加载"按钮测试');
+      log('如果成功，Canvas 数量应该大于 0');
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-03-22T12:53:37.676Z",
+  "total": 4,
+  "passed": 4,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "模块一：区块网格管理器功能测试",
+      "file": "test_module1_grid.js",
+      "success": true,
+      "duration": "23.35"
+    },
+    {
+      "name": "模块二：OSM 底图加载器功能测试",
+      "file": "test_module2_map_service.js",
+      "success": true,
+      "duration": "81.07"
+    },
+    {
+      "name": "模块一、二接口兼容性测试",
+      "file": "test_module1_2_compatibility.js",
+      "success": true,
+      "duration": "28.13"
+    },
+    {
+      "name": "模块一、二与模块三、四接口兼容性测试",
+      "file": "test_module1_2_3_4_compatibility.js",
+      "success": true,
+      "duration": "25.58"
+    }
+  ]
+}

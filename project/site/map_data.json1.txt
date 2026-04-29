@@ -1,0 +1,325 @@
+{
+	{
+		"point_id": "P015",
+		"coordinates": {
+			"longitude": 23°8′14″,
+       			"latitude": 113°19′22″
+     		},
+     		"scene_description": "体育中心地铁站D1口盲道分叉",
+     		"images": {
+       			"N": "images/P015_N.jpg",
+       			"NE": "images/P015_NE.jpg",
+       			"E": "images/P015_E.jpg",
+       			"SE": "images/P015_SE.jpg",
+       			"S": "images/P015_S.jpg",
+       			"SW": "images/P015_SW.jpg",
+       			"W": "images/P015_W.jpg",
+       			"NW": "images/P015_NW.jpg"
+     	},
+	{
+		"point_id": "P016",
+		"coordinates": {
+			"longitude": 23°8′9″,
+       			"latitude": 113°19′22″
+     		},
+     		"scene_description": "天河南街道天河路广东外经贸大厦附近",
+     		"images": {
+       			"N": "images/P016_N.jpg",
+       			"NE": "images/P016_NE.jpg",
+       			"E": "images/P016_E.jpg",
+       			"SE": "images/P016_SE.jpg",
+       			"S": "images/P016_S.jpg",
+       			"SW": "images/P016_SW.jpg",
+       			"W": "images/P016_W.jpg",
+       			"NW": "images/P016_NW.jpg"
+     	},
+	{
+		"point_id": "P017",
+		"coordinates": {
+			"longitude": 23°8′6″,
+       			"latitude":113°19′22″
+     		},
+     		"scene_description": "天河南街道在广晟大厦附近",
+     		"images": {
+       			"N": "images/P017_N.jpg",
+       			"NE": "images/P017_NE.jpg",
+       			"E": "images/P017_E.jpg",
+       			"SE": "images/P017_SE.jpg",
+       			"S": "images/P017_S.jpg",
+       			"SW": "images/P017_SW.jpg",
+       			"W": "images/P017_W.jpg",
+       			"NW": "images/P017_NW.jpg"
+     	},
+	{
+		"point_id": "P018",
+		"coordinates": {
+			"longitude": 23° 8′ 1″,
+       			"latitude":113° 19′ 22″
+     		},
+     		"scene_description": "天河南街道正佳广场附近",
+     		"images": {
+       			"N": "images/P018_N.jpg",
+       			"NE": "images/P018_NE.jpg",
+       			"E": "images/P018_E.jpg",
+       			"SE": "images/P018_SE.jpg",
+       			"S": "images/P018_S.jpg",
+       			"SW": "images/P018_SW.jpg",
+       			"W": "images/P018_W.jpg",
+       			"NW": "images/P018_NW.jpg"
+     	},
+	{
+		"point_id": "P019",
+		"coordinates": {
+			"longitude": 23° 7′ 50″,
+       			"latitude":113° 19′ 21″
+     		},
+     		"scene_description": "天河南街道在体育西小区南区附近",
+     		"images": {
+       			"N": "images/P019_N.jpg",
+       			"NE": "images/P019_NE.jpg",
+       			"E": "images/P019_E.jpg",
+       			"SE": "images/P019_SE.jpg",
+       			"S": "images/P019_S.jpg",
+       			"SW": "images/P019_SW.jpg",
+       			"W": "images/P019_W.jpg",
+       			"NW": "images/P019_NW.jpg"
+     	},
+	{
+		"point_id": "P020",
+		"coordinates": {
+			"longitude": 23° 7′ 44″,
+       			"latitude":113° 19′ 20″
+     		},
+     		"scene_description": "冼村街道在恒大中心附近",
+     		"images": {
+       			"N": "images/P020_N.jpg",
+       			"NE": "images/P020_NE.jpg",
+       			"E": "images/P020_E.jpg",
+       			"SE": "images/P020_SE.jpg",
+       			"S": "images/P020_S.jpg",
+       			"SW": "images/P020_SW.jpg",
+       			"W": "images/P020_W.jpg",
+       			"NW": "images/P020_NW.jpg"
+     	},
+	{
+		"point_id": "P021",
+		"coordinates": {
+			"longitude": 23° 7′ 43″,
+       			"latitude":113° 19′ 20″
+     		},
+     		"scene_description": "冼村街道在恒大中心附近",
+     		"images": {
+       			"N": "images/P021_N.jpg",
+       			"NE": "images/P021_NE.jpg",
+       			"E": "images/P021_E.jpg",
+       			"SE": "images/P021_SE.jpg",
+       			"S": "images/P021_S.jpg",
+       			"SW": "images/P021_SW.jpg",
+       			"W": "images/P021_W.jpg",
+       			"NW": "images/P021_NW.jpg"
+     	},
+	{
+		"point_id": "P022",
+		"coordinates": {
+			"longitude": 23° 7′ 40″,
+       			"latitude":113° 19′ 21″
+     		},
+     		"scene_description": "冼村街道在维家思广场附近",
+     		"images": {
+       			"N": "images/P022_N.jpg",
+       			"NE": "images/P022_NE.jpg",
+       			"E": "images/P022_E.jpg",
+       			"SE": "images/P022_SE.jpg",
+       			"S": "images/P022_S.jpg",
+       			"SW": "images/P022_SW.jpg",
+       			"W": "images/P022_W.jpg",
+       			"NW": "images/P022_NW.jpg"
+     	},
+	{
+		"point_id": "P023",
+		"coordinates": {
+			"longitude": 23° 7′ 36″,
+       			"latitude":113° 19′ 21″
+     		},
+     		"scene_description": "冼村街道在维家思广场附近",
+     		"images": {
+       			"N": "images/P023_N.jpg",
+       			"NE": "images/P023_NE.jpg",
+       			"E": "images/P023_E.jpg",
+       			"SE": "images/P023_SE.jpg",
+       			"S": "images/P023_S.jpg",
+       			"SW": "images/P023_SW.jpg",
+       			"W": "images/P023_W.jpg",
+       			"NW": "images/P023_NW.jpg"
+     	},
+	{
+		"point_id": "P024",
+		"coordinates": {
+			"longitude": 23° 7′ 32″,
+       			"latitude":113° 19′ 18″
+     		},
+     		"scene_description": "冼村街道在维家思广场附近",
+     		"images": {
+       			"N": "images/P024_N.jpg",
+       			"NE": "images/P024_NE.jpg",
+       			"E": "images/P024_E.jpg",
+       			"SE": "images/P024_SE.jpg",
+       			"S": "images/P024_S.jpg",
+       			"SW": "images/P024_SW.jpg",
+       			"W": "images/P024_W.jpg",
+       			"NW": "images/P024_NW.jpg"
+     	},
+	{
+		"point_id": "P025",
+		"coordinates": {
+			"longitude": 23° 7′ 32″,
+       			"latitude":113° 19′ 12″
+     		},
+     		"scene_description": "冼村街道在花城汇广场附近",
+     		"images": {
+       			"N": "images/P025_N.jpg",
+       			"NE": "images/P025_NE.jpg",
+       			"E": "images/P025_E.jpg",
+       			"SE": "images/P025_SE.jpg",
+       			"S": "images/P025_S.jpg",
+       			"SW": "images/P025_SW.jpg",
+       			"W": "images/P025_W.jpg",
+       			"NW": "images/P025_NW.jpg"
+     	},
+	{
+		"point_id": "P026",
+		"coordinates": {
+			"longitude": 23° 7′ 31″,
+       			"latitude":113° 19′ 12″
+     		},
+     		"scene_description": "冼村街道在花城汇购物中心中区附近",
+     		"images": {
+       			"N": "images/P026_N.jpg",
+       			"NE": "images/P026_NE.jpg",
+       			"E": "images/P026_E.jpg",
+       			"SE": "images/P026_SE.jpg",
+       			"S": "images/P026_S.jpg",
+       			"SW": "images/P026_SW.jpg",
+       			"W": "images/P026_W.jpg",
+       			"NW": "images/P026_NW.jpg"
+     	},
+	{
+		"point_id": "P027",
+		"coordinates": {
+			"longitude": 23° 7′ 25″,
+       			"latitude":113° 19′ 15″
+     		},
+     		"scene_description": "冼村街道花城汇购物中心附近",
+     		"images": {
+       			"N": "images/P027_N.jpg",
+       			"NE": "images/P027_NE.jpg",
+       			"E": "images/P027_E.jpg",
+       			"SE": "images/P027_SE.jpg",
+       			"S": "images/P027_S.jpg",
+       			"SW": "images/P027_SW.jpg",
+       			"W": "images/P027_W.jpg",
+       			"NW": "images/P027_NW.jpg"
+     	},
+	{
+		"point_id": "P028",
+		"coordinates": {
+			"longitude": 23° 7′ 25″,
+       			"latitude": 113° 19′ 15″
+     		},
+     		"scene_description": "冼村街道在高德置地广场秋广场附近",
+     		"images": {
+       			"N": "images/P028_N.jpg",
+       			"NE": "images/P028_NE.jpg",
+       			"E": "images/P028_E.jpg",
+       			"SE": "images/P028_SE.jpg",
+       			"S": "images/P028_S.jpg",
+       			"SW": "images/P028_SW.jpg",
+       			"W": "images/P028_W.jpg",
+       			"NW": "images/P028_NW.jpg"
+     	},
+	{
+		"point_id": "P029",
+		"coordinates": {
+			"longitude": 23° 7′ 21″,
+       			"latitude":113° 19′ 14″
+     		},
+     		"scene_description": "冼村街道在高德置地广场冬广场附近",
+     		"images": {
+       			"N": "images/P029_N.jpg",
+       			"NE": "images/P029_NE.jpg",
+       			"E": "images/P029_E.jpg",
+       			"SE": "images/P029_SE.jpg",
+       			"S": "images/P029_S.jpg",
+       			"SW": "images/P029_SW.jpg",
+       			"W": "images/P029_W.jpg",
+       			"NW": "images/P029_NW.jpg"
+     	}
+	{
+		"point_id": "P030",
+		"coordinates": {
+			"longitude": 23° 7′ 20″,
+       			"latitude":113° 19′ 14″
+     		},
+     		"scene_description": "冼村街道在花城汇购物中心附近",
+     		"images": {
+       			"N": "images/P030_N.jpg",
+       			"NE": "images/P030_NE.jpg",
+       			"E": "images/P030_E.jpg",
+       			"SE": "images/P030_SE.jpg",
+       			"S": "images/P030_S.jpg",
+       			"SW": "images/P030_SW.jpg",
+       			"W": "images/P030_W.jpg",
+       			"NW": "images/P030_NW.jpg"
+     	}
+	{
+		"point_id": "P031",
+		"coordinates": {
+			"longitude": 23° 7′ 17″,
+       			"latitude":113° 19′ 16″
+     		},
+     		"scene_description": "猎德街道在广州k11购物艺术中心附近",
+     		"images": {
+       			"N": "images/P031_N.jpg",
+       			"NE": "images/P031_NE.jpg",
+       			"E": "images/P031_E.jpg",
+       			"SE": "images/P031_SE.jpg",
+       			"S": "images/P031_S.jpg",
+       			"SW": "images/P031_SW.jpg",
+       			"W": "images/P031_W.jpg",
+       			"NW": "images/P031_NW.jpg"
+     	}
+	{
+		"point_id": "P032",
+		"coordinates": {
+			"longitude": 23° 7′ 17″,
+       			"latitude": 113° 19′ 16″
+     		},
+     		"scene_description": "猎德街道在k11艺术购物中心附近",
+     		"images": {
+       			"N": "images/P032_N.jpg",
+       			"NE": "images/P032_NE.jpg",
+       			"E": "images/P032_E.jpg",
+       			"SE": "images/P032_SE.jpg",
+       			"S": "images/P032_S.jpg",
+       			"SW": "images/P032_SW.jpg",
+       			"W": "images/P032_W.jpg",
+       			"NW": "images/P032_NW.jpg"
+     	}
+	{
+		"point_id": "P033",
+		"coordinates": {
+			"longitude": 23° 7′ 15″,
+       			"latitude":113° 19′ 37″
+     		},
+     		"scene_description": "猎德街道在猎德高德汇优托邦附近",
+     		"images": {
+       			"N": "images/P033_N.jpg",
+       			"NE": "images/P033_NE.jpg",
+       			"E": "images/P033_E.jpg",
+       			"SE": "images/P033_SE.jpg",
+       			"S": "images/P033_S.jpg",
+       			"SW": "images/P033_SW.jpg",
+       			"W": "images/P033_W.jpg",
+       			"NW": "images/P033_NW.jpg"
+     	}
+}

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 10: 最终诊断 - 系统渲染检查</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      margin: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+    
+    .header {
+      background: #161b22;
+      padding: 20px;
+      border-bottom: 1px solid #30363d;
+    }
+    
+    h1 { margin: 0; font-size: 20px; color: #58a6ff; }
+    h2 { margin: 20px 0 10px 0; font-size: 16px; color: #7ee787; }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    
+    .panel.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    button {
+      background: #238636;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      width: 100%;
+      margin: 5px 0;
+    }
+    
+    button:hover { background: #2ea043; }
+    button.secondary { background: #1f6feb; }
+    button.secondary:hover { background: #388bfd; }
+    button.danger { background: #da3633; }
+    button.danger:hover { background: #f85149; }
+    
+    .result-box {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .success { color: #7ee787; }
+    .error { color: #f85149; }
+    .warning { color: #ffa657; }
+    .info { color: #58a6ff; }
+    
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    
+    .status-item:last-child { border-bottom: none; }
+    
+    .badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    .badge-success { background: #238636; color: white; }
+    .badge-error { background: #da3633; color: white; }
+    .badge-warning { background: #9e6a03; color: white; }
+    
+    .conclusion {
+      background: #21262d;
+      border-left: 4px solid #58a6ff;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 0 6px 6px 0;
+    }
+    
+    .solution-box {
+      background: #0d1117;
+      border: 1px solid #238636;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+    
+    .code-block {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+    }
+    
+    #test-canvas {
+      width: 100%;
+      height: 300px;
+      background: #000;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🩺 Step 10: 最终诊断 - 系统渲染检查</h1>
+  </div>
+  
+  <div class="container">
+    <div class="grid">
+      <!-- 系统信息 -->
+      <div class="panel">
+        <h2>系统信息</h2>
+        <div id="system-info">
+          <div class="status-item">
+            <span>浏览器</span>
+            <span id="browser-info" class="badge badge-warning">检测中...</span>
+          </div>
+          <div class="status-item">
+            <span>WebGL</span>
+            <span id="webgl-info" class="badge badge-warning">检测中...</span>
+          </div>
+          <div class="status-item">
+            <span>Canvas 2D</span>
+            <span id="canvas2d-info" class="badge badge-warning">检测中...</span>
+          </div>
+          <div class="status-item">
+            <span>硬件加速</span>
+            <span id="gpu-info" class="badge badge-warning">检测中...</span>
+          </div>
+        </div>
+        <button onclick="checkSystem()" class="secondary">重新检测系统</button>
+      </div>
+      
+      <!-- 高德地图测试 -->
+      <div class="panel">
+        <h2>高德地图测试</h2>
+        <button onclick="testDirectLoad()">1. 直接加载测试</button>
+        <button onclick="testLoader()">2. Loader 加载测试</button>
+        <button onclick="checkMapCanvas()">3. 检查地图 Canvas</button>
+        <div id="map-status" class="result-box" style="display:none;"></div>
+      </div>
+      
+      <!-- 渲染测试 -->
+      <div class="panel full-width">
+        <h2>渲染测试区</h2>
+        <p style="color: #8b949e; font-size: 12px; margin-bottom: 10px;">
+          下方应该显示测试图像。如果黑屏，说明浏览器渲染有问题。
+        </p>
+        <canvas id="test-canvas"></canvas>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button onclick="drawTestPattern()" class="secondary">绘制测试图案</button>
+          <button onclick="drawMapMock()" class="secondary">绘制地图模拟</button>
+          <button onclick="clearCanvas()" class="danger">清空</button>
+        </div>
+      </div>
+      
+      <!-- 诊断结果 -->
+      <div class="panel full-width">
+        <h2>诊断结论</h2>
+        <div id="conclusion" class="conclusion">
+          请完成上方测试后查看诊断结果
+        </div>
+        
+        <div id="solution" class="solution-box" style="display:none;">
+          <h3 style="margin-top:0;color:#7ee787;">解决方案</h3>
+          <div id="solution-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 高德 Loader -->
+  <script src="https://webapi.amap.com/loader.js"></script>
+  
+  <script>
+    let map = null;
+    
+    function checkSystem() {
+      // 浏览器信息
+      const ua = navigator.userAgent;
+      let browser = 'Unknown';
+      if (ua.includes('Chrome')) browser = 'Chrome';
+      else if (ua.includes('Firefox')) browser = 'Firefox';
+      else if (ua.includes('Safari')) browser = 'Safari';
+      else if (ua.includes('Edge')) browser = 'Edge';
+      
+      document.getElementById('browser-info').textContent = browser;
+      document.getElementById('browser-info').className = 'badge badge-success';
+      
+      // WebGL 检测
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const webglEl = document.getElementById('webgl-info');
+      
+      if (gl) {
+        webglEl.textContent = '支持';
+        webglEl.className = 'badge badge-success';
+        
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+          const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+          const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+          document.getElementById('gpu-info').textContent = '已启用';
+          document.getElementById('gpu-info').className = 'badge badge-success';
+        }
+      } else {
+        webglEl.textContent = '不支持';
+        webglEl.className = 'badge badge-error';
+        document.getElementById('gpu-info').textContent = '未知';
+        document.getElementById('gpu-info').className = 'badge badge-warning';
+      }
+      
+      // Canvas 2D
+      const ctx2d = canvas.getContext('2d');
+      const canvas2dEl = document.getElementById('canvas2d-info');
+      if (ctx2d) {
+        canvas2dEl.textContent = '支持';
+        canvas2dEl.className = 'badge badge-success';
+      } else {
+        canvas2dEl.textContent = '不支持';
+        canvas2dEl.className = 'badge badge-error';
+      }
+    }
+    
+    window.testDirectLoad = async () => {
+      const status = document.getElementById('map-status');
+      status.style.display = 'block';
+      status.innerHTML = '<span class="info">直接加载高德脚本...</span>';
+      
+      // 创建临时脚本
+      const script = document.createElement('script');
+      script.src = 'https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1';
+      
+      script.onload = () => {
+        if (typeof AMap !== 'undefined') {
+          status.innerHTML += '<br><span class="success">✓ AMap 加载成功</span>';
+          status.innerHTML += `<br><span class="info">版本: ${AMap.version}</span>`;
+          
+          // 尝试创建地图
+          try {
+            const testDiv = document.createElement('div');
+            testDiv.style.cssText = 'width:1px;height:1px;position:absolute;left:-9999px;';
+            document.body.appendChild(testDiv);
+            
+            const testMap = new AMap.Map(testDiv, { zoom: 10 });
+            status.innerHTML += '<br><span class="success">✓ 地图实例创建成功</span>';
+            
+            // 检查 canvas
+            setTimeout(() => {
+              const canvases = testDiv.querySelectorAll('canvas');
+              status.innerHTML += `<br><span class="${canvases.length > 0 ? 'success' : 'error'}">Canvas 数量: ${canvases.length}</span>`;
+              testMap.destroy();
+              testDiv.remove();
+            }, 2000);
+            
+          } catch (e) {
+            status.innerHTML += `<br><span class="error">✗ 创建失败: ${e.message}</span>`;
+          }
+        }
+      };
+      
+      script.onerror = () => {
+        status.innerHTML += '<br><span class="error">✗ 脚本加载失败</span>';
+      };
+      
+      document.head.appendChild(script);
+    };
+    
+    window.testLoader = async () => {
+      const status = document.getElementById('map-status');
+      status.style.display = 'block';
+      status.innerHTML = '<span class="info">使用 Loader 加载...</span>';
+      
+      try {
+        const AMap = await AMapLoader.load({
+          key: "0beb99f14b04f13a734c81c032b9a8f1",
+          version: "2.0"
+        });
+        
+        status.innerHTML += '<br><span class="success">✓ Loader 加载成功</span>';
+        status.innerHTML += `<br><span class="info">版本: ${AMap.version}</span>`;
+        
+        // 创建地图
+        const mapDiv = document.createElement('div');
+        mapDiv.style.cssText = 'width:400px;height:300px;position:absolute;left:-9999px;';
+        document.body.appendChild(mapDiv);
+        
+        const map = new AMap.Map(mapDiv, {
+          zoom: 15,
+          center: [116.397428, 39.90923]
+        });
+        
+        status.innerHTML += '<br><span class="success">✓ 地图实例创建成功</span>';
+        
+        setTimeout(() => {
+          const canvases = mapDiv.querySelectorAll('canvas');
+          status.innerHTML += `<br><span class="${canvases.length > 0 ? 'success' : 'error'}">Canvas 数量: ${canvases.length}</span>`;
+          
+          if (canvases.length > 0) {
+            // 检查像素
+            let hasContent = false;
+            canvases.forEach(c => {
+              const ctx = c.getContext('2d');
+              if (ctx) {
+                const data = ctx.getImageData(0, 0, Math.min(100, c.width), Math.min(100, c.height)).data;
+                for (let i = 0; i < data.length; i += 4) {
+                  if (data[i] > 0 || data[i+1] > 0 || data[i+2] > 0) {
+                    hasContent = true;
+                    break;
+                  }
+                }
+              }
+            });
+            
+            status.innerHTML += `<br><span class="${hasContent ? 'success' : 'error'}">Canvas 内容: ${hasContent ? '有像素' : '全黑/透明'}</span>`;
+          }
+          
+          map.destroy();
+          mapDiv.remove();
+          
+          updateConclusion();
+        }, 3000);
+        
+      } catch (e) {
+        status.innerHTML += `<br><span class="error">✗ 加载失败: ${e.message}</span>`;
+      }
+    };
+    
+    window.checkMapCanvas = () => {
+      // 在主 Canvas 上检查
+      const canvas = document.getElementById('test-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // 绘制一个测试图案
+      ctx.fillStyle = '#238636';
+      ctx.fillRect(50, 50, 100, 100);
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px Arial';
+      ctx.fillText('Canvas 工作正常', 60, 100);
+      
+      // 读取像素
+      const data = ctx.getImageData(50, 50, 100, 100).data;
+      let greenPixels = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] === 35 && data[i+1] === 134 && data[i+2] === 54) {
+          greenPixels++;
+        }
+      }
+      
+      const status = document.getElementById('map-status');
+      status.style.display = 'block';
+      status.innerHTML = `<span class="${greenPixels > 0 ? 'success' : 'error'}">Canvas 读写测试: ${greenPixels > 0 ? '通过' : '失败'}</span>`;
+    };
+    
+    window.drawTestPattern = () => {
+      const canvas = document.getElementById('test-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // 清空
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 绘制彩虹渐变
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, 'red');
+      gradient.addColorStop(0.17, 'orange');
+      gradient.addColorStop(0.33, 'yellow');
+      gradient.addColorStop(0.5, 'green');
+      gradient.addColorStop(0.67, 'blue');
+      gradient.addColorStop(0.83, 'indigo');
+      gradient.addColorStop(1, 'violet');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(50, 50, canvas.width - 100, 100);
+      
+      // 绘制文字
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('如果看到彩虹条纹，Canvas 渲染正常', canvas.width / 2, 200);
+      ctx.font = '16px Arial';
+      ctx.fillText('如果黑屏，浏览器可能存在渲染问题', canvas.width / 2, 230);
+    };
+    
+    window.drawMapMock = () => {
+      const canvas = document.getElementById('test-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // 清空
+      ctx.fillStyle = '#e8e8e8';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 绘制模拟街道网格
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 8;
+      
+      // 横向街道
+      for (let y = 50; y < canvas.height; y += 80) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      
+      // 纵向街道
+      for (let x = 50; x < canvas.width; x += 100) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      
+      // 绘制建筑物
+      ctx.fillStyle = '#d0d0d0';
+      for (let x = 70; x < canvas.width; x += 100) {
+        for (let y = 70; y < canvas.height; y += 80) {
+          if (Math.random() > 0.3) {
+            ctx.fillRect(x, y, 60, 50);
+          }
+        }
+      }
+      
+      // 标签
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 20px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('地图模拟渲染 (Canvas 2D)', canvas.width / 2, 30);
+      
+      ctx.font = '14px Arial';
+      ctx.fillText('如果看到街道网格，说明 Canvas 可以正常渲染地图类内容', canvas.width / 2, canvas.height - 20);
+    };
+    
+    window.clearCanvas = () => {
+      const canvas = document.getElementById('test-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+    
+    function updateConclusion() {
+      const conclusion = document.getElementById('conclusion');
+      const solution = document.getElementById('solution');
+      const solutionContent = document.getElementById('solution-content');
+      
+      // 根据测试结果给出结论
+      conclusion.innerHTML = `
+        <strong>分析结果:</strong><br>
+        1. Canvas 元素存在 (Step 7/8 确认)<br>
+        2. 但显示黑屏，可能是以下原因:<br>
+        &nbsp;&nbsp;• 高德地图瓦片未能正确绘制到 Canvas<br>
+        &nbsp;&nbsp;• Canvas 被其他元素遮挡<br>
+        &nbsp;&nbsp;• 浏览器安全设置阻止了瓦片加载<br>
+        &nbsp;&nbsp;• 需要配置安全密钥 (securityJsCode)<br>
+        &nbsp;&nbsp;• Key 权限问题 (未启用 JSAPI)
+      `;
+      
+      solution.style.display = 'block';
+      solutionContent.innerHTML = `
+        <strong>推荐解决方案 (按优先级):</strong><br><br>
+        
+        <strong>1. 检查 Key 配置</strong><br>
+        访问 <a href="https://console.amap.com/dev/key/app" target="_blank">高德控制台</a><br>
+        - 确认 Key 已启用「JSAPI」功能<br>
+        - 添加域名白名单: <code>localhost</code>, <code>127.0.0.1</code><br>
+        - 如果需要，配置安全密钥<br><br>
+        
+        <strong>2. 修改项目使用 Loader</strong><br>
+        在 index.html 中:
+        <div class="code-block"><script src="https://webapi.amap.com/loader.js"></script>
+<script type="module">
+  const AMap = await AMapLoader.load({
+    key: "0beb99f14b04f13a734c81c032b9a8f1",
+    version: "2.0",
+    plugins: ['AMap.Scale']
+  });
+  
+  const map = new AMap.Map('map-viewer', {
+    zoom: 15,
+    center: [116.397428, 39.90923]
+  });
+</script></div>
+        
+        <strong>3. 如果仍然黑屏</strong><br>
+        - 尝试在 Firefox/Edge 浏览器中测试<br>
+        - 检查浏览器控制台是否有 CORS 错误<br>
+        - 暂时使用高德 1.4 版本: <code>version: "1.4.15"</code>
+      `;
+    }
+    
+    // 初始化
+    window.onload = () => {
+      checkSystem();
+      
+      // 初始化测试 canvas 尺寸
+      const canvas = document.getElementById('test-canvas');
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      
+      // 默认绘制测试图案
+      drawTestPattern();
+    };
+    
+    window.onresize = () => {
+      const canvas = document.getElementById('test-canvas');
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+  </script>
+</body>
+</html>

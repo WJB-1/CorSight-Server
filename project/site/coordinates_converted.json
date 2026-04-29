@@ -1,0 +1,230 @@
+[
+  {
+    "point_id": "P015",
+    "original": {
+      "longitude": "23°8′14″",
+      "latitude": "113°19′22″"
+    },
+    "converted": {
+      "longitude": 113.322778,
+      "latitude": 23.137222
+    },
+    "scene_description": "体育中心地铁站D1口盲道分叉"
+  },
+  {
+    "point_id": "P016",
+    "original": {
+      "longitude": "23°8′9″",
+      "latitude": "113°19′22″"
+    },
+    "converted": {
+      "longitude": 113.322778,
+      "latitude": 23.135833
+    },
+    "scene_description": "天河南街道天河路广东外经贸大厦附近"
+  },
+  {
+    "point_id": "P017",
+    "original": {
+      "longitude": "23°8′6″",
+      "latitude": "113°19′22″"
+    },
+    "converted": {
+      "longitude": 113.322778,
+      "latitude": 23.135
+    },
+    "scene_description": "天河南街道在广晟大厦附近"
+  },
+  {
+    "point_id": "P018",
+    "original": {
+      "longitude": "23° 8′ 1″",
+      "latitude": "113° 19′ 22″"
+    },
+    "converted": {
+      "longitude": 113.322778,
+      "latitude": 23.133611
+    },
+    "scene_description": "天河南街道正佳广场附近"
+  },
+  {
+    "point_id": "P019",
+    "original": {
+      "longitude": "23° 7′ 50″",
+      "latitude": "113° 19′ 21″"
+    },
+    "converted": {
+      "longitude": 113.3225,
+      "latitude": 23.130556
+    },
+    "scene_description": "天河南街道在体育西小区南区附近"
+  },
+  {
+    "point_id": "P020",
+    "original": {
+      "longitude": "23° 7′ 44″",
+      "latitude": "113° 19′ 20″"
+    },
+    "converted": {
+      "longitude": 113.322222,
+      "latitude": 23.128889
+    },
+    "scene_description": "冼村街道在恒大中心附近"
+  },
+  {
+    "point_id": "P021",
+    "original": {
+      "longitude": "23° 7′ 43″",
+      "latitude": "113° 19′ 20″"
+    },
+    "converted": {
+      "longitude": 113.322222,
+      "latitude": 23.128611
+    },
+    "scene_description": "冼村街道在恒大中心附近"
+  },
+  {
+    "point_id": "P022",
+    "original": {
+      "longitude": "23° 7′ 40″",
+      "latitude": "113° 19′ 21″"
+    },
+    "converted": {
+      "longitude": 113.3225,
+      "latitude": 23.127778
+    },
+    "scene_description": "冼村街道在维家思广场附近"
+  },
+  {
+    "point_id": "P023",
+    "original": {
+      "longitude": "23° 7′ 36″",
+      "latitude": "113° 19′ 21″"
+    },
+    "converted": {
+      "longitude": 113.3225,
+      "latitude": 23.126667
+    },
+    "scene_description": "冼村街道在维家思广场附近"
+  },
+  {
+    "point_id": "P024",
+    "original": {
+      "longitude": "23° 7′ 32″",
+      "latitude": "113° 19′ 18″"
+    },
+    "converted": {
+      "longitude": 113.321667,
+      "latitude": 23.125556
+    },
+    "scene_description": "冼村街道在维家思广场附近"
+  },
+  {
+    "point_id": "P025",
+    "original": {
+      "longitude": "23° 7′ 32″",
+      "latitude": "113° 19′ 12″"
+    },
+    "converted": {
+      "longitude": 113.32,
+      "latitude": 23.125556
+    },
+    "scene_description": "冼村街道在花城汇广场附近"
+  },
+  {
+    "point_id": "P026",
+    "original": {
+      "longitude": "23° 7′ 31″",
+      "latitude": "113° 19′ 12″"
+    },
+    "converted": {
+      "longitude": 113.32,
+      "latitude": 23.125278
+    },
+    "scene_description": "冼村街道在花城汇购物中心中区附近"
+  },
+  {
+    "point_id": "P027",
+    "original": {
+      "longitude": "23° 7′ 25″",
+      "latitude": "113° 19′ 15″"
+    },
+    "converted": {
+      "longitude": 113.320833,
+      "latitude": 23.123611
+    },
+    "scene_description": "冼村街道花城汇购物中心附近"
+  },
+  {
+    "point_id": "P028",
+    "original": {
+      "longitude": "23° 7′ 25″",
+      "latitude": "113° 19′ 15″"
+    },
+    "converted": {
+      "longitude": 113.320833,
+      "latitude": 23.123611
+    },
+    "scene_description": "冼村街道在高德置地广场秋广场附近"
+  },
+  {
+    "point_id": "P029",
+    "original": {
+      "longitude": "23° 7′ 21″",
+      "latitude": "113° 19′ 14″"
+    },
+    "converted": {
+      "longitude": 113.320556,
+      "latitude": 23.1225
+    },
+    "scene_description": "冼村街道在高德置地广场冬广场附近"
+  },
+  {
+    "point_id": "P030",
+    "original": {
+      "longitude": "23° 7′ 20″",
+      "latitude": "113° 19′ 14″"
+    },
+    "converted": {
+      "longitude": 113.320556,
+      "latitude": 23.122222
+    },
+    "scene_description": "冼村街道在花城汇购物中心附近"
+  },
+  {
+    "point_id": "P031",
+    "original": {
+      "longitude": "23° 7′ 17″",
+      "latitude": "113° 19′ 16″"
+    },
+    "converted": {
+      "longitude": 113.321111,
+      "latitude": 23.121389
+    },
+    "scene_description": "猎德街道在广州k11购物艺术中心附近"
+  },
+  {
+    "point_id": "P032",
+    "original": {
+      "longitude": "23° 7′ 17″",
+      "latitude": "113° 19′ 16″"
+    },
+    "converted": {
+      "longitude": 113.321111,
+      "latitude": 23.121389
+    },
+    "scene_description": "猎德街道在k11艺术购物中心附近"
+  },
+  {
+    "point_id": "P033",
+    "original": {
+      "longitude": "23° 7′ 15″",
+      "latitude": "113° 19′ 37″"
+    },
+    "converted": {
+      "longitude": 113.326944,
+      "latitude": 23.120833
+    },
+    "scene_description": "猎德街道在猎德高德汇优托邦附近"
+  }
+]

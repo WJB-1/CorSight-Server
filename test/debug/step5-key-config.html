@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step 5: Key 配置与安全密钥</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      margin: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    h2 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #1890ff;
+      padding-bottom: 10px;
+    }
+    
+    h3 {
+      color: #555;
+      margin-top: 20px;
+    }
+    
+    .key-input {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: monospace;
+    }
+    
+    button {
+      padding: 10px 20px;
+      margin: 5px 5px 5px 0;
+      cursor: pointer;
+      background: #1890ff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background: #40a9ff;
+    }
+    
+    button.secondary {
+      background: #52c41a;
+    }
+    
+    button.secondary:hover {
+      background: #73d13d;
+    }
+    
+    button.danger {
+      background: #ff4d4f;
+    }
+    
+    .result-box {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    
+    .result-box.error {
+      background: #fff1f0;
+      border-color: #ffa39e;
+    }
+    
+    .result-box.warning {
+      background: #fffbe6;
+      border-color: #ffe58f;
+    }
+    
+    .code-block {
+      background: #f5f5f5;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    
+    .step {
+      display: flex;
+      align-items: flex-start;
+      margin: 15px 0;
+      padding: 15px;
+      background: #fafafa;
+      border-radius: 4px;
+      border-left: 3px solid #1890ff;
+    }
+    
+    .step-number {
+      width: 30px;
+      height: 30px;
+      background: #1890ff;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+    
+    .step-content {
+      flex: 1;
+    }
+    
+    .alert {
+      padding: 12px 15px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    
+    .alert-info {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      color: #096dd9;
+    }
+    
+    .alert-warning {
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      color: #ad6800;
+    }
+    
+    .alert-error {
+      background: #fff1f0;
+      border: 1px solid #ffa39e;
+      color: #cf1322;
+    }
+    
+    .alert-success {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #389e0d;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    
+    th, td {
+      border: 1px solid #d9d9d9;
+      padding: 10px;
+      text-align: left;
+    }
+    
+    th {
+      background: #fafafa;
+      font-weight: 600;
+    }
+    
+    #map-container {
+      width: 100%;
+      height: 400px;
+      background: #f0f0f0;
+      border: 2px solid #1890ff;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-ok {
+      background: #f6ffed;
+      color: #52c41a;
+      border: 1px solid #b7eb8f;
+    }
+    
+    .status-error {
+      background: #fff1f0;
+      color: #ff4d4f;
+      border: 1px solid #ffa39e;
+    }
+    
+    .status-warn {
+      background: #fffbe6;
+      color: #faad14;
+      border: 1px solid #ffe58f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 当前配置检测 -->
+    <div class="card">
+      <h2>🔑 当前 Key 配置检测</h2>
+      <div id="current-key-info">
+        <p>正在检测...</p>
+      </div>
+      <div style="margin-top: 15px;">
+        <button onclick="checkCurrentConfig()">重新检测</button>
+        <button class="secondary" onclick="testWithNewKey()">使用新 Key 测试</button>
+      </div>
+    </div>
+    
+    <!-- 问题诊断 -->
+    <div class="card">
+      <h2>🔍 问题诊断结果</h2>
+      <div id="diagnosis-result">
+        <div class="alert alert-info">
+          请先点击上方"重新检测"按钮进行诊断
+        </div>
+      </div>
+    </div>
+    
+    <!-- 解决方案 -->
+    <div class="card">
+      <h2>🛠️ 解决方案</h2>
+      
+      <div class="alert alert-warning">
+        <strong>高德地图 JSAPI 2.0 需要配置安全密钥！</strong><br>
+        自 2021 年 12 月起，高德地图要求所有 Key 必须配置安全密钥才能正常使用。
+      </div>
+      
+      <h3>解决步骤：</h3>
+      
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <strong>登录高德控制台</strong><br>
+          访问 <a href="https://console.amap.com/dev/key/app" target="_blank">https://console.amap.com/dev/key/app</a><br>
+          使用您的高德账号登录
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <strong>找到对应的应用和 Key</strong><br>
+          在「应用管理」→「我的应用」中找到您正在使用的 Key<br>
+          当前使用的 Key: <code>0beb99f14b04f13a734c81c032b9a8f1</code>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <strong>配置安全密钥</strong><br>
+          点击「设置」→「安全密钥」<br>
+          生成一个新的安全密钥，或者使用已有的<br>
+          <div class="code-block">// 在加载地图前设置安全密钥
+window._AMapSecurityConfig = {
+  securityJsCode: '您的安全密钥',
+};</div>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <strong>配置域名白名单</strong><br>
+          在 Key 的「域名白名单」中添加：<br>
+          <ul>
+            <li><code>localhost</code> (本地开发)</li>
+            <li><code>127.0.0.1</code> (本地 IP)</li>
+            <li>您的实际域名 (如 <code>yourdomain.com</code>)</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-content">
+          <strong>修改项目代码</strong><br>
+          在 <code>index.html</code> 中，在加载高德地图脚本之前添加安全密钥配置：
+          <div class="code-block"><script type="text/javascript">
+  window._AMapSecurityConfig = {
+    securityJsCode: '您的安全密钥',
+  };
+</script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=您的Key"></script></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 快速修复 -->
+    <div class="card">
+      <h2>⚡ 快速修复工具</h2>
+      <p>输入您的安全密钥，立即测试是否能正常加载地图：</p>
+      <input type="text" id="security-code" class="key-input" 
+             placeholder="请输入安全密钥 (如: 9c2f3a8b...)" />
+      <button class="secondary" onclick="applySecurityCode()">应用并测试</button>
+      <div id="quick-test-result"></div>
+    </div>
+    
+    <!-- 测试地图 -->
+    <div class="card">
+      <h2>🗺️ 测试地图</h2>
+      <div id="map-container"></div>
+    </div>
+    
+    <!-- 常见问题 -->
+    <div class="card">
+      <h2>❓ 常见问题</h2>
+      <table>
+        <tr>
+          <th>错误信息</th>
+          <th>原因</th>
+          <th>解决方案</th>
+        </tr>
+        <tr>
+          <td>USERKEY_PLAT_NOMATCH</td>
+          <td>Key 与平台不匹配</td>
+          <td>检查 Key 是否配置了 Web 服务</td>
+        </tr>
+        <tr>
+          <td>USERKEY_NOT_FOUND</td>
+          <td>Key 不存在</td>
+          <td>检查 Key 是否正确复制</td>
+        </tr>
+        <tr>
+          <td>INVALID_USER_KEY</td>
+          <td>Key 无效</td>
+          <td>检查 Key 是否被禁用或过期</td>
+        </tr>
+        <tr>
+          <td>无错误但无瓦片</td>
+          <td>未配置安全密钥</td>
+          <td>按照上方步骤配置 securityJsCode</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 加载高德地图 -->
+  <script src="https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1"></script>
+  
+  <script>
+    let map = null;
+    
+    function checkCurrentConfig() {
+      const infoDiv = document.getElementById('current-key-info');
+      const resultDiv = document.getElementById('diagnosis-result');
+      
+      // 检测当前配置
+      let info = '<table>';
+      info += '<tr><td>AMap 对象</td><td>' + (typeof AMap !== 'undefined' ? 
+        '<span class="status-badge status-ok">✓ 已加载</span>' : 
+        '<span class="status-badge status-error">✗ 未加载</span>') + '</td></tr>';
+      
+      if (typeof AMap !== 'undefined') {
+        info += '<tr><td>API 版本</td><td>' + (AMap.version || 'unknown') + '</td></tr>';
+      }
+      
+      info += '<tr><td>安全密钥配置</td><td>' + 
+        (window._AMapSecurityConfig ? 
+        '<span class="status-badge status-ok">✓ 已配置</span>' : 
+        '<span class="status-badge status-error">✗ 未配置</span>') + '</td></tr>';
+      
+      info += '<tr><td>当前 Key</td><td><code>0beb99f14b04f13a734c81c032b9a8f1</code></td></tr>';
+      info += '</table>';
+      
+      infoDiv.innerHTML = info;
+      
+      // 诊断结果
+      if (typeof AMap === 'undefined') {
+        resultDiv.innerHTML = `
+          <div class="alert alert-error">
+            <strong>❌ AMap 未加载</strong><br>
+            请检查网络连接，或 Key 是否有效。
+          </div>
+        `;
+      } else if (!window._AMapSecurityConfig) {
+        resultDiv.innerHTML = `
+          <div class="alert alert-error">
+            <strong>❌ 未配置安全密钥</strong><br>
+            这是地图实例创建成功但不显示瓦片的最可能原因！<br>
+            请按照下方"解决步骤"配置 securityJsCode。
+          </div>
+        `;
+      } else {
+        resultDiv.innerHTML = `
+          <div class="alert alert-success">
+            <strong>✅ 配置看起来正常</strong><br>
+            请使用下方测试地图验证瓦片是否正常加载。
+          </div>
+        `;
+      }
+    }
+    
+    function applySecurityCode() {
+      const code = document.getElementById('security-code').value.trim();
+      const resultDiv = document.getElementById('quick-test-result');
+      
+      if (!code) {
+        resultDiv.innerHTML = '<div class="alert alert-error">请输入安全密钥</div>';
+        return;
+      }
+      
+      // 设置安全密钥
+      window._AMapSecurityConfig = {
+        securityJsCode: code
+      };
+      
+      resultDiv.innerHTML = '<div class="alert alert-info">安全密钥已设置，正在重新加载地图...</div>';
+      
+      // 重新加载高德地图脚本
+      reloadMapScript(code);
+    }
+    
+    function reloadMapScript(securityCode) {
+      // 移除旧的地图容器内容
+      document.getElementById('map-container').innerHTML = '';
+      
+      // 移除旧的脚本
+      const oldScripts = document.querySelectorAll('script[src*="amap"]');
+      oldScripts.forEach(s => s.remove());
+      
+      // 先添加安全密钥配置脚本
+      const configScript = document.createElement('script');
+      configScript.type = 'text/javascript';
+      configScript.textContent = `
+        window._AMapSecurityConfig = {
+          securityJsCode: '${securityCode}'
+        };
+      `;
+      document.head.appendChild(configScript);
+      
+      // 添加新的高德地图脚本
+      const script = document.createElement('script');
+      script.src = 'https://webapi.amap.com/maps?v=2.0&key=0beb99f14b04f13a734c81c032b9a8f1';
+      script.onload = () => {
+        document.getElementById('quick-test-result').innerHTML = 
+          '<div class="alert alert-success">地图脚本重新加载成功！正在创建地图...</div>';
+        setTimeout(createTestMap, 500);
+      };
+      script.onerror = () => {
+        document.getElementById('quick-test-result').innerHTML = 
+          '<div class="alert alert-error">地图脚本加载失败</div>';
+      };
+      document.head.appendChild(script);
+    }
+    
+    function createTestMap() {
+      if (typeof AMap === 'undefined') {
+        document.getElementById('quick-test-result').innerHTML = 
+          '<div class="alert alert-error">AMap 仍未定义</div>';
+        return;
+      }
+      
+      try {
+        map = new AMap.Map('map-container', {
+          zoom: 15,
+          center: [116.397428, 39.90923],
+          viewMode: '2D'
+        });
+        
+        map.on('complete', () => {
+          document.getElementById('quick-test-result').innerHTML = 
+            '<div class="alert alert-success">✅ 地图加载完成！瓦片正常显示。</div>';
+        });
+        
+        // 检查瓦片
+        setTimeout(() => {
+          const images = document.getElementById('map-container').querySelectorAll('img[src*="amap"]');
+          if (images.length === 0) {
+            document.getElementById('quick-test-result').innerHTML += 
+              '<div class="alert alert-warning">⚠️ 警告：未检测到瓦片图片，可能仍有问题。</div>';
+          } else {
+            document.getElementById('quick-test-result').innerHTML += 
+              `<div class="alert alert-success">✅ 检测到 ${images.length} 个瓦片图片</div>`;
+          }
+        }, 3000);
+        
+      } catch (e) {
+        document.getElementById('quick-test-result').innerHTML = 
+          `<div class="alert alert-error">创建地图失败: ${e.message}</div>`;
+      }
+    }
+    
+    function testWithNewKey() {
+      const newKey = prompt('请输入新的高德 Key:');
+      if (newKey) {
+        window.location.href = window.location.pathname + '?key=' + encodeURIComponent(newKey);
+      }
+    }
+    
+    // 页面加载时自动检测
+    window.onload = () => {
+      checkCurrentConfig();
+    };
+  </script>
+</body>
+</html>

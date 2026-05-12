@@ -138,69 +138,184 @@ function getPromptByNodeType(nodeType, params = {}) {
 }
 
 /**
+ * 根据 walk_type 判断场景类型
+ * walk_type 是高德API返回的最可靠结构化标识
+ *
+ * @param {number} walkType - walk_type 值
+ * @returns {string|null} 场景类型标识
+ */
+function getSceneTypeFromWalkType(walkType) {
+  if (walkType === undefined || walkType === null) return null;
+
+  const wt = parseInt(walkType, 10);
+  switch (wt) {
+    case 1: return 'intersection';   // 人行横道
+    case 3: return 'underpass';      // 地下通道
+    case 4: return 'overpass';       // 过街天桥
+    case 8: return 'escalator';      // 扶梯
+    case 9: return 'elevator';       // 直梯
+    case 12: return 'underpass';     // 建筑物穿越通道
+    case 13: return 'underpass';     // 行人通道
+    case 20: return 'steps';         // 阶梯
+    case 21: return 'steps';         // 斜坡
+    case 22: return 'overpass';      // 桥
+    case 23: return 'underpass';     // 隧道
+    default: return null;
+  }
+}
+
+/**
+ * 根据 action 判断场景类型
+ *
+ * @param {string} action - action 值
+ * @returns {string|null} 场景类型标识
+ */
+function getSceneTypeFromAction(action) {
+  if (!action) return null;
+
+  const actionMap = {
+    '通过人行横道': 'intersection',
+    '通过过街天桥': 'overpass',
+    '通过地下通道': 'underpass',
+    '通过广场': 'intersection',
+    '到道路斜对面': 'intersection',
+    '左转': 'intersection',
+    '右转': 'intersection',
+    '向左前方': 'intersection',
+    '向右前方': 'intersection',
+    '向左后方': 'intersection',
+    '向右后方': 'intersection',
+    '调头': 'intersection',
+    '掉头': 'intersection'
+  };
+
+  return actionMap[action] || null;
+}
+
+/**
+ * 根据 assistant_action 判断场景类型
+ *
+ * @param {string} assistantAction - assistant_action 值
+ * @returns {string|null} 场景类型标识
+ */
+function getSceneTypeFromAssistantAction(assistantAction) {
+  if (!assistantAction) return null;
+  if (assistantAction === '到达目的地') return 'destination';
+  return null;
+}
+
+/**
  * 获取提示词选择指南
  * 用于根据节点特征自动选择合适的提示词
- * 
+ *
+ * 优先级：walk_type > action > assistant_action > instruction 文本兜底
+ *
  * @param {Object} node - 节点数据
  * @returns {Object} 提示词类型和建议
  */
 function selectPromptForNode(node) {
-  const action = (node.action || '').toLowerCase();
-  const instruction = (node.instruction || '').toLowerCase();
-  const text = `${action} ${instruction}`;
+  // 1. 优先使用 walk_type（最可靠的结构化标识）
+  let sceneType = getSceneTypeFromWalkType(node.walk_type);
 
-  // 判断节点类型
-  if (text.includes('路口') || text.includes('斑马线') || text.includes('过街')) {
-    return {
-      type: 'intersection',
-      prompt: getIntersectionPrompt(node),
-      description: '路口/过街场景',
-      modelType: getSceneModelType('intersection')
-    };
+  // 2. 使用 action 判断
+  if (!sceneType) {
+    sceneType = getSceneTypeFromAction(node.action);
   }
 
-  if (text.includes('天桥') || text.includes('人行天桥')) {
-    return {
-      type: 'overpass',
-      prompt: getFeaturePrompt({ ...node, featureType: 'overpass' }),
-      description: '天桥场景',
-      modelType: getSceneModelType('feature')
-    };
+  // 3. 使用 assistant_action 判断
+  if (!sceneType) {
+    sceneType = getSceneTypeFromAssistantAction(node.assistant_action);
   }
 
-  if (text.includes('地下通道') || text.includes('隧道')) {
-    return {
-      type: 'underpass',
-      prompt: getFeaturePrompt({ ...node, featureType: 'underpass' }),
-      description: '地下通道场景',
-      modelType: getSceneModelType('feature')
-    };
+  // 4. 兜底：instruction 文本关键词匹配
+  if (!sceneType) {
+    const instruction = (node.instruction || '').toLowerCase();
+    const action = (node.action || '').toLowerCase();
+    const text = `${action} ${instruction}`;
+
+    if (text.includes('路口') || text.includes('斑马线') || text.includes('过街')) {
+      sceneType = 'intersection';
+    } else if (text.includes('天桥') || text.includes('人行天桥')) {
+      sceneType = 'overpass';
+    } else if (text.includes('地下通道') || text.includes('隧道')) {
+      sceneType = 'underpass';
+    } else if (text.includes('台阶') || text.includes('楼梯')) {
+      sceneType = 'steps';
+    } else if (text.includes('到达') || text.includes('目的地')) {
+      sceneType = 'destination';
+    }
   }
 
-  if (text.includes('台阶') || text.includes('楼梯')) {
-    return {
-      type: 'steps',
-      prompt: getFeaturePrompt({ ...node, featureType: 'steps' }),
-      description: '台阶场景',
-      modelType: getSceneModelType('feature')
-    };
+  // 5. 根据 node_type 做最终调整
+  if (!sceneType && node.node_type === 'sample') {
+    sceneType = 'path';
   }
 
-  if (text.includes('到达') || text.includes('目的地')) {
-    return {
-      type: 'destination',
-      prompt: getDestinationPrompt(node),
-      description: '目的地场景',
-      modelType: getSceneModelType('destination')
-    };
+  // 6. 默认 fallback
+  if (!sceneType) {
+    sceneType = 'path';
   }
 
-  return {
-    type: 'path',
-    prompt: getPathPrompt(node),
-    description: '沿途路段场景',
-    modelType: getSceneModelType('path')
-  };
+  // 根据 sceneType 返回对应的提示词
+  switch (sceneType) {
+    case 'intersection':
+      return {
+        type: 'intersection',
+        prompt: getIntersectionPrompt(node),
+        description: '路口/过街场景',
+        modelType: getSceneModelType('intersection')
+      };
+    case 'overpass':
+      return {
+        type: 'overpass',
+        prompt: getFeaturePrompt({ ...node, featureType: 'overpass' }),
+        description: '天桥场景',
+        modelType: getSceneModelType('feature')
+      };
+    case 'underpass':
+      return {
+        type: 'underpass',
+        prompt: getFeaturePrompt({ ...node, featureType: 'underpass' }),
+        description: '地下通道场景',
+        modelType: getSceneModelType('feature')
+      };
+    case 'steps':
+      return {
+        type: 'steps',
+        prompt: getFeaturePrompt({ ...node, featureType: 'steps' }),
+        description: '台阶场景',
+        modelType: getSceneModelType('feature')
+      };
+    case 'elevator':
+      return {
+        type: 'elevator',
+        prompt: getFeaturePrompt({ ...node, featureType: 'elevator' }),
+        description: '电梯场景',
+        modelType: getSceneModelType('feature')
+      };
+    case 'escalator':
+      return {
+        type: 'escalator',
+        prompt: getFeaturePrompt({ ...node, featureType: 'escalator' }),
+        description: '扶梯场景',
+        modelType: getSceneModelType('feature')
+      };
+    case 'destination':
+      return {
+        type: 'destination',
+        prompt: getDestinationPrompt(node),
+        description: '目的地场景',
+        modelType: getSceneModelType('destination')
+      };
+    case 'path':
+    default:
+      return {
+        type: 'path',
+        prompt: getPathPrompt(node),
+        description: '沿途路段场景',
+        modelType: getSceneModelType('path')
+      };
+  }
 }
 
 /**
@@ -289,6 +404,11 @@ module.exports = {
   // 智能选择函数
   getPromptByNodeType,
   selectPromptForNode,
+
+  // 场景类型判断函数（新增）
+  getSceneTypeFromWalkType,
+  getSceneTypeFromAction,
+  getSceneTypeFromAssistantAction,
 
   // 工具函数
   getOutputSchema,

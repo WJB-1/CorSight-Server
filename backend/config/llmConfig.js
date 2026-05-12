@@ -23,9 +23,15 @@ const configStore = {
   activeProvider: null,
   activeModel: null,
 
-  // 优化：分离视觉模型和文本模型配置
-  visionModel: null,  // 用于多模态推理（perceptionAgent）
-  textModel: null,    // 用于文本生成（languageOptimizerAgent）
+  // 固定模型配置（已测试验证，不再支持动态切换）
+  // 视觉模型（从Agent）：负责街景图片分析
+  visionModel: 'qwen-vl-max',
+  visionProvider: 'bailian',
+  // 文本模型（主Agent）：负责播报文案生成
+  // 注：deepseek-v4-pro thinking 模式 OpenAI SDK 兼容性差，content 常返回空
+  // 改用 deepseek-chat（V4 Flash 非thinking 别名），稳定性更好
+  textModel: 'deepseek-chat',
+  textProvider: 'deepseek',
 
   // 各 Provider 的模型列表（根据 test-all-models.js 测试结果更新）
   //
@@ -287,32 +293,31 @@ function setTextModel(modelName) {
 }
 
 /**
- * 获取视觉模型配置
- * @returns {Object|null} 视觉模型配置
+ * 获取视觉模型配置（从Agent - 固定为 qwen-vl-max）
+ * @returns {Object} 视觉模型配置
  */
 function getVisionModel() {
-  if (!configStore.visionModel) return null;
-
-  const provider = inferProviderFromModel(configStore.visionModel);
   return {
     modelName: configStore.visionModel,
-    provider: provider,
-    capabilities: getModelCapabilities(configStore.visionModel)
+    provider: configStore.visionProvider,
+    capabilities: { multimodal: true },
+    role: '从Agent',
+    description: '负责街景图片分析'
   };
 }
 
 /**
- * 获取文本模型配置
- * @returns {Object|null} 文本模型配置
+ * 获取文本模型配置（主Agent - 固定为 deepseek-v4-pro）
+ * @returns {Object} 文本模型配置
  */
 function getTextModel() {
-  if (!configStore.textModel) return null;
-
-  const provider = inferProviderFromModel(configStore.textModel);
   return {
     modelName: configStore.textModel,
-    provider: provider,
-    capabilities: getModelCapabilities(configStore.textModel)
+    provider: configStore.textProvider,
+    capabilities: { multimodal: false },
+    role: '主Agent',
+    description: '负责播报文案生成',
+    thinkingMode: true
   };
 }
 

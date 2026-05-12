@@ -54,7 +54,7 @@ function getEnvBool(key, defaultValue = false) {
 // ============================================
 const serverConfig = {
     /** 服务器端口 */
-    PORT: getEnvInt('PORT', 3000),
+    PORT: getEnvInt('PORT', 3002),
     /** 环境模式 */
     NODE_ENV: getEnv('NODE_ENV', 'development'),
     /** 是否开发环境 */

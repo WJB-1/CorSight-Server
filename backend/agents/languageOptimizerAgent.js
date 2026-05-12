@@ -1,20 +1,21 @@
 /**
  * 语言优化播报 Agent
- * 
+ *
  * 模块 4.4：最终语言重构 Agent (Language Optimizer)
- * 
+ *
  * 功能：
- * - 融合所有数据（IR JSON + 视觉感知数据）
+ * - 融合所有数据（IR JSON + 视觉感知数据 + 全局路径分析）
  * - 应用防范式提示词约束
  * - 输出最终的三段式盲人导航播报文案
  */
 
 const llmClient = require('../services/llmClient');
 const { getChatMessages, sanitizeOutput, validateOutput } = require('../prompts/defensivePrompts');
+const { generateEnhancedPrompt } = require('./masterAgent');
 
 /**
  * 生成最终播报文案
- * 
+ *
  * @param {Object} irData - 富化后的 IR JSON 数据（包含 perception_data）
  * @returns {Promise<Object>} 播报结果 { success, text, error, validation }
  */
@@ -32,20 +33,30 @@ async function generateBroadcast(irData) {
 
         console.log(`[languageOptimizerAgent] 处理 ${enhancedData.key_nodes.length} 个节点`);
 
-        // 3. 构建完整的对话消息
+        // 3. 构建完整的对话消息（包含全局分析）
         const messages = getChatMessages(enhancedData);
 
         console.log('[languageOptimizerAgent] 调用 LLM 生成播报...');
 
-        // 4. 调用 LLM（优化：指定使用文本模型）
+        // 4. 调用 LLM（指定使用文本模型 - 主Agent DeepSeek V4 Pro）
+        // 提取 system prompt 和 user prompt 分开传递
+        const systemMessage = messages.find(m => m.role === 'system');
+        const userMessages = messages.filter(m => m.role !== 'system');
+
+        const userPrompt = userMessages.map(m => {
+            if (m.role === 'assistant') return '【示例输出】\n' + m.content;
+            return m.content;
+        }).join('\n\n==========\n\n');
+
         const llmResult = await llmClient.generateContent(
-            messages[2].content, // User prompt
+            userPrompt,
             [], // 语言优化不需要图片
             {
                 temperature: 0.1,
                 topP: 0.85,
-                maxTokens: 1000,
-                modelType: 'text'  // 指定使用文本模型
+                maxTokens: 2000,
+                modelType: 'text',
+                systemPrompt: systemMessage ? systemMessage.content : null
             }
         );
 
@@ -53,53 +64,26 @@ async function generateBroadcast(irData) {
             throw new Error(`LLM 调用失败: ${llmResult.error}`);
         }
 
+        // 调试：打印原始LLM输出
+        console.log('[languageOptimizerAgent] LLM 原始输出（前500字符）:');
+        console.log((llmResult.text || '').substring(0, 500));
+        console.log('[languageOptimizerAgent] 原始输出长度:', (llmResult.text || '').length);
+
         // 5. 后处理：清理禁用词
         let broadcastText = sanitizeOutput(llmResult.text);
+
+        console.log('[languageOptimizerAgent] sanitize后长度:', broadcastText.length);
+        if (broadcastText.length < 50) {
+            console.warn('[languageOptimizerAgent] ⚠️ sanitize后过短，输出:', broadcastText);
+        }
 
         // 6. 验证输出
         const validation = validateOutput(broadcastText);
 
-        // 7. 如果验证失败，尝试重试一次
-        if (!validation.passed && !llmResult.fallback) {
-            console.warn('[languageOptimizerAgent] 输出验证失败，尝试重试...');
-            console.warn('问题:', validation.issues.join(', '));
-
-            // 重试一次，在提示词中强调问题
-            const retryMessages = [
-                ...messages,
-                {
-                    role: 'assistant',
-                    content: llmResult.text
-                },
-                {
-                    role: 'user',
-                    content: `上述输出存在以下问题，请修正后重新生成：${validation.issues.join('、')}。必须严格遵守系统指令中的所有约束法则。`
-                }
-            ];
-
-            const retryResult = await llmClient.generateContent(
-                retryMessages.map(m => m.content).join('\n\n'),
-                [],
-                {
-                    temperature: 0.05, // 更低温度
-                    topP: 0.8,
-                    maxTokens: 1000
-                }
-            );
-
-            if (retryResult.success) {
-                broadcastText = sanitizeOutput(retryResult.text);
-                const retryValidation = validateOutput(broadcastText);
-
-                return {
-                    success: true,
-                    text: broadcastText,
-                    validation: retryValidation,
-                    retried: true,
-                    provider: retryResult.provider,
-                    fallback: retryResult.fallback || false
-                };
-            }
+        // 7. 验证失败时仅记录，不再重试（重试会导致 DeepSeek thinking 模式状态混乱）
+        if (!validation.passed) {
+            console.warn('[languageOptimizerAgent] 输出验证未通过:', validation.issues.join(', '));
+            console.warn('[languageOptimizerAgent] 仍返回当前输出，不重试');
         }
 
         console.log('[languageOptimizerAgent] 播报文案生成完成');
@@ -116,9 +100,8 @@ async function generateBroadcast(irData) {
     } catch (error) {
         console.error('[languageOptimizerAgent] 生成播报失败:', error.message);
 
-        // 返回降级响应
         return {
-            success: true, // 标记为成功，但带有错误信息
+            success: true,
             text: generateFallbackBroadcast(irData),
             error: error.message,
             fallback: true,
@@ -129,7 +112,7 @@ async function generateBroadcast(irData) {
 
 /**
  * 将感知数据融合到 IR 数据中
- * 
+ *
  * @param {Object} irData - 原始 IR 数据
  * @returns {Object} 增强后的 IR 数据
  */
@@ -137,15 +120,11 @@ function enhanceIRWithPerception(irData) {
     const enhanced = {
         ...irData,
         key_nodes: irData.key_nodes.map(node => {
-            // 如果节点有感知数据，将其融合到 hazards 中
             if (node.perception_data && node.perception_data.analysis) {
                 const analysis = node.perception_data.analysis;
-
-                // 从感知分析中提取风险点
                 const additionalHazards = [];
 
                 if (analysis.parsed) {
-                    // 根据提示词类型提取不同的信息
                     if (analysis.parsed.hazards) {
                         additionalHazards.push(...analysis.parsed.hazards);
                     }
@@ -168,14 +147,12 @@ function enhanceIRWithPerception(irData) {
                     }
                 }
 
-                // 合并 hazards，去重
                 const existingHazards = node.hazards || [];
                 const allHazards = [...new Set([...existingHazards, ...additionalHazards])];
 
                 return {
                     ...node,
                     hazards: allHazards,
-                    // 添加视觉描述摘要
                     visual_summary: extractVisualSummary(analysis)
                 };
             }
@@ -189,9 +166,6 @@ function enhanceIRWithPerception(irData) {
 
 /**
  * 从感知分析中提取视觉摘要
- * 
- * @param {Object} analysis - 感知分析结果
- * @returns {string|null} 视觉摘要
  */
 function extractVisualSummary(analysis) {
     if (!analysis || !analysis.parsed) return null;
@@ -199,7 +173,6 @@ function extractVisualSummary(analysis) {
     const parsed = analysis.parsed;
     const summaries = [];
 
-    // 根据不同类型的分析提取摘要
     if (parsed.accessibility_analysis) {
         const aa = parsed.accessibility_analysis;
         if (aa.tactile_paving) summaries.push(`盲道: ${aa.tactile_paving}`);
@@ -223,10 +196,6 @@ function extractVisualSummary(analysis) {
 
 /**
  * 生成降级播报文案
- * 当 LLM 调用失败时返回的基础播报
- * 
- * @param {Object} irData - IR 数据
- * @returns {string} 降级播报文案
  */
 function generateFallbackBroadcast(irData) {
     if (!irData || !irData.key_nodes) {
@@ -236,21 +205,19 @@ function generateFallbackBroadcast(irData) {
     const summary = irData.route_summary || {};
     const nodes = irData.key_nodes || [];
 
-    // 构建基础播报
     let broadcast = `全程${summary.total_distance || '未知'}，行程包含${nodes.length}个关键节点。\n\n`;
 
-    // 节点播报
     nodes.forEach((node, index) => {
         const isLast = index === nodes.length - 1;
         const distance = node.distance_from_start || node.distance || '';
         const action = node.action || '前行';
-        const clock = node.clock_direction || '12点钟方向';
+        const direction = node.relative_direction || node.orientation || '直行';
         const road = node.road || '';
 
         if (isLast) {
-            broadcast += `${clock}${action}，到达终点。`;
+            broadcast += `${direction}${action}，到达终点。`;
         } else {
-            broadcast += `${clock}${action}${road ? '进入' + road : ''}${distance ? '，距离' + distance : ''}。\n\n`;
+            broadcast += `${direction}${action}${road ? '进入' + road : ''}${distance ? '，距离' + distance : ''}。\n\n`;
         }
     });
 
@@ -259,9 +226,6 @@ function generateFallbackBroadcast(irData) {
 
 /**
  * 格式化播报文本为段落结构
- * 
- * @param {string} text - 原始播报文本
- * @returns {Object} 分段后的结构
  */
 function formatBroadcast(text) {
     if (!text) return null;
@@ -278,25 +242,16 @@ function formatBroadcast(text) {
 
 /**
  * 估算播报时长
- * 
- * @param {string} text - 播报文本
- * @returns {number} 预估秒数
  */
 function estimateReadingTime(text) {
     if (!text) return 0;
-
-    // 中文字符：每个字约 0.3 秒
-    // 标点符号：每个约 0.5 秒停顿
-    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const chineseChars = (text.match(/[一-龥]/g) || []).length;
     const punctuations = (text.match(/[，。！？；：]/g) || []).length;
-
     return Math.ceil(chineseChars * 0.3 + punctuations * 0.5);
 }
 
 /**
  * 测试语言优化 Agent
- * 
- * @returns {Promise<Object>} 测试结果
  */
 async function testLanguageOptimizer() {
     const testIR = {
@@ -308,30 +263,39 @@ async function testLanguageOptimizer() {
         key_nodes: [
             {
                 node_index: 1,
+                node_type: 'key',
                 distance_from_start: '100米',
                 action: '上天桥',
-                clock_direction: '11点钟方向',
+                relative_direction: '稍向左转',
+                orientation: '东南',
                 instruction: '向东南步行100米上天桥',
                 road: '东长安街',
-                hazards: ['两段连续向上台阶']
+                hazards: ['两段连续向上台阶'],
+                walk_type: 4
             },
             {
                 node_index: 2,
+                node_type: 'key',
                 distance_from_start: '600米',
                 action: '过马路',
-                clock_direction: '12点钟方向',
+                relative_direction: '直行',
+                orientation: '南',
                 instruction: '直行500米后过马路',
                 road: '王府井大街',
-                hazards: ['无盲道', '机非混行']
+                hazards: ['无盲道', '机非混行'],
+                walk_type: 1
             },
             {
                 node_index: 3,
+                node_type: 'key',
                 distance_from_start: '700米',
                 action: '到达',
-                clock_direction: '12点钟方向',
+                relative_direction: '直行',
+                orientation: '东',
                 instruction: '到达目的地',
                 road: '终点',
-                hazards: ['最后50米无导航覆盖']
+                hazards: ['最后50米无导航覆盖'],
+                assistant_action: '到达目的地'
             }
         ]
     };

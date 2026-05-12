@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 const config = require('../config/envConfig');
-const SamplingPoint = require('../models/SamplingPoint');
+const { SamplingPoint } = require('../models/SamplingPoint');
 
 // 数据库连接配置
 const DB_URI = config.database.MONGODB_URI;

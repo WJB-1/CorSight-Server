@@ -74,20 +74,18 @@ async function generateContent(prompt, imagePaths = [], options = {}) {
         let provider, modelName;
 
         if (options.modelType === 'vision' && llmConfig.getVisionModel) {
-            // 使用视觉模型（用于多模态推理）
             const visionModel = llmConfig.getVisionModel();
             if (visionModel) {
                 provider = visionModel.provider;
                 modelName = visionModel.modelName;
-                console.log(`[llmClient] 使用视觉模型: ${provider} / ${modelName}`);
+                console.log(`[llmClient] 使用视觉模型(从Agent): ${provider} / ${modelName}`);
             }
         } else if (options.modelType === 'text' && llmConfig.getTextModel) {
-            // 使用文本模型（用于文本生成）
             const textModel = llmConfig.getTextModel();
             if (textModel) {
                 provider = textModel.provider;
                 modelName = textModel.modelName;
-                console.log(`[llmClient] 使用文本模型: ${provider} / ${modelName}`);
+                console.log(`[llmClient] 使用文本模型(主Agent): ${provider} / ${modelName}`);
             }
         }
 
@@ -99,16 +97,19 @@ async function generateContent(prompt, imagePaths = [], options = {}) {
             console.log(`[llmClient] 使用默认模型: ${provider} / ${modelName}`);
         }
 
+        // 提取 system prompt（如果调用方提供了）
+        const systemPrompt = options.systemPrompt || null;
+
         // 根据 provider 分发到对应实现
         switch (provider.toLowerCase()) {
             case 'gemini':
-                return await generateWithGemini(prompt, imagePaths, modelName, options);
+                return await generateWithGemini(prompt, imagePaths, modelName, options, systemPrompt);
             case 'deepseek':
-                return await generateWithDeepSeek(prompt, imagePaths, modelName, options);
+                return await generateWithDeepSeek(prompt, imagePaths, modelName, options, systemPrompt);
             case 'bailian':
             case 'qwen':
             case 'aliyun':
-                return await generateWithQwen(prompt, imagePaths, modelName, options);
+                return await generateWithQwen(prompt, imagePaths, modelName, options, systemPrompt);
             default:
                 console.warn(`[llmClient] 未知的 provider: ${provider}，使用降级模式`);
                 return generateFallbackResponse(prompt);
@@ -200,7 +201,7 @@ async function generateWithGemini(prompt, imagePaths, modelName, options) {
  * 
  * 使用 OpenAI SDK，通过 baseURL 指向 DeepSeek API
  */
-async function generateWithDeepSeek(prompt, imagePaths, modelName, options) {
+async function generateWithDeepSeek(prompt, imagePaths, modelName, options, systemPrompt) {
     try {
         if (!OpenAI) {
             throw new Error('OpenAI SDK 未安装，请运行: npm install openai');
@@ -224,19 +225,38 @@ async function generateWithDeepSeek(prompt, imagePaths, modelName, options) {
 
         console.log(`[llmClient] 发送 DeepSeek 请求，模型: ${modelName}`);
 
-        const response = await openai.chat.completions.create({
+        // 构建请求体
+        const requestBody = {
             model: modelName || 'deepseek-chat',
             messages: [
-                { role: 'system', content: '你是一个专业的视障导航助手。' },
+                { role: 'system', content: systemPrompt || '你是一个专业的视障导航助手。' },
                 { role: 'user', content: prompt }
             ],
-            temperature: options.temperature ?? 0.1,
-            max_tokens: options.maxTokens ?? 800
-        });
+            max_tokens: options.maxTokens ?? 2000,
+            temperature: options.temperature ?? 0.1
+        };
+        if (options.topP !== undefined) requestBody.top_p = options.topP;
 
-        const text = response.choices[0].message.content;
+        // V4 Pro 才需要 thinking 控制（OpenAI SDK 透传 extra_body）
+        if (modelName === 'deepseek-v4-pro' && options.thinking !== true) {
+            requestBody.extra_body = { thinking: { type: 'disabled' } };
+            console.log('[llmClient] DeepSeek V4 Pro 显式禁用 thinking');
+        }
 
-        console.log('[llmClient] DeepSeek 响应成功');
+        const response = await openai.chat.completions.create(requestBody);
+
+        // 仅使用 content
+        const msg = response.choices[0].message;
+        const text = msg.content || '';
+
+        if (!text) {
+            console.warn('[llmClient] ⚠️ DeepSeek content 为空');
+            if (msg.reasoning_content) {
+                console.warn('[llmClient] reasoning_content 长度:', msg.reasoning_content.length);
+            }
+        }
+
+        console.log('[llmClient] DeepSeek 响应成功，长度:', text.length);
 
         return {
             success: true,
@@ -262,7 +282,7 @@ async function generateWithDeepSeek(prompt, imagePaths, modelName, options) {
  * 
  * 使用 OpenAI SDK，通过 baseURL 指向 DashScope 兼容接口
  */
-async function generateWithQwen(prompt, imagePaths, modelName, options) {
+async function generateWithQwen(prompt, imagePaths, modelName, options, systemPrompt) {
     try {
         if (!OpenAI) {
             throw new Error('OpenAI SDK 未安装，请运行: npm install openai');
@@ -307,7 +327,7 @@ async function generateWithQwen(prompt, imagePaths, modelName, options) {
         const response = await openai.chat.completions.create({
             model: modelName || 'qwen-vl-plus',
             messages: [
-                { role: 'system', content: '你是一个专业的视障导航助手。' },
+                { role: 'system', content: systemPrompt || '你是一个专业的视障导航助手。' },
                 { role: 'user', content: contentArr }
             ],
             temperature: options.temperature ?? 0.1,

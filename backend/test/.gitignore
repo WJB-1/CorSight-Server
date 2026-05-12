@@ -1,0 +1,6 @@
+# 测试目录忽略规则
+.env.test
+*.key
+*.secret
+node_modules/
+*.log

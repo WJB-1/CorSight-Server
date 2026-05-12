@@ -20,7 +20,7 @@ model_type: vision
 
 - 地形类型：{{feature_name}}
 - 动作：{{action}}
-- 进入方位：{{clock_direction}}
+- 相对方向：{{clock_direction}}
 
 ### 必须包含的关键信息
 
@@ -74,7 +74,7 @@ model_type: vision
     "alternatives": "是否有电梯/扶梯等替代方式"
   },
   "exit": {
-    "direction": "出口朝向",
+    "direction": "出口相对方向（左转/右转/直行）",
     "surface": "出口后地面情况",
     "connection": "与下一路段的衔接"
   },
@@ -99,7 +99,7 @@ model_type: vision
 | `feature_type` | enum | 地形类型 | "overpass" |
 | `feature_name` | string | 地形中文名 | "天桥" |
 | `action` | string | 当前动作 | "上天桥" |
-| `clock_direction` | string | 进入方位 | "11点钟方向" |
+| `clock_direction` | string | 相对方向 | "稍向左转" |
 
 ---
 

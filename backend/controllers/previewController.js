@@ -16,6 +16,58 @@ const amapService = require('../services/amapService');
 const spatialMiddleware = require('../middleware/spatialMiddleware');
 const perceptionAgent = require('../agents/perceptionAgent');
 const languageOptimizerAgent = require('../agents/languageOptimizerAgent');
+const fs = require('fs');
+const path = require('path');
+
+// 输出日志目录
+const PREVIEW_LOG_DIR = path.join(__dirname, '../logs/preview');
+
+/**
+ * 保存预览结果到文件（用于调试）
+ */
+function savePreviewLog(origin, destination, response) {
+    try {
+        if (!fs.existsSync(PREVIEW_LOG_DIR)) {
+            fs.mkdirSync(PREVIEW_LOG_DIR, { recursive: true });
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `preview-${timestamp}.json`;
+        const filepath = path.join(PREVIEW_LOG_DIR, filename);
+
+        const logData = {
+            timestamp: new Date().toISOString(),
+            request: { origin, destination },
+            response: response,
+            broadcast_text: response.data?.text || null,
+            validation: response.data?.metadata?.broadcast?.validation || null
+        };
+
+        fs.writeFileSync(filepath, JSON.stringify(logData, null, 2), 'utf8');
+        console.log(`[previewController] 预览结果已保存: ${filepath}`);
+
+        // 同时保存纯文本版的播报文案（方便查看）
+        if (response.data?.text) {
+            const txtPath = path.join(PREVIEW_LOG_DIR, `preview-${timestamp}.txt`);
+            const txtContent = `时间: ${new Date().toLocaleString('zh-CN')}
+起点: ${origin}
+终点: ${destination}
+总距离: ${response.data.route_summary?.total_distance || 'N/A'}
+预计时间: ${response.data.route_summary?.duration_estimate || 'N/A'}
+关键节点数: ${response.data.key_nodes?.length || 0}
+验证状态: ${response.data.metadata?.broadcast?.validation?.passed ? '✅通过' : '❌失败'}
+${response.data.metadata?.broadcast?.validation?.issues?.length ? '问题: ' + response.data.metadata.broadcast.validation.issues.join(', ') : ''}
+
+========== 播报文案 ==========
+
+${response.data.text}
+`;
+            fs.writeFileSync(txtPath, txtContent, 'utf8');
+        }
+    } catch (err) {
+        console.warn('[previewController] 保存预览日志失败:', err.message);
+    }
+}
 
 /**
  * POST /api/navigation/preview
@@ -156,6 +208,9 @@ async function generatePreview(req, res) {
         };
 
         res.json(response);
+
+        // 异步保存日志（不阻塞响应）
+        savePreviewLog(origin, destination, response);
 
     } catch (error) {
         console.error('[previewController] 生成预览失败:', error.message);
@@ -345,7 +400,8 @@ function generateSimpleFallback(irData) {
 
     nodes.forEach((node, i) => {
         const isLast = i === nodes.length - 1;
-        text += `${node.clock_direction || ''}${node.action || '前行'}${isLast ? '到达终点。' : '，'}`;
+        const direction = node.relative_direction || node.orientation || '直行';
+        text += `${direction}${node.action || '前行'}${isLast ? '到达终点。' : '，'}`;
     });
 
     return text;

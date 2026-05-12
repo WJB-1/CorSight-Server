@@ -1,36 +1,39 @@
 @echo off
-chcp 65001 >nul
-title CorSight 导航系统 - 服务停止脚本
+chcp 936 >nul
+title CorSight - Stop All Services
 echo ============================================
-echo   CorSight 视障导航系统 - 停止所有服务
+echo   CorSight Navigation - Stop All Services
 echo ============================================
 echo.
 
-echo 正在查找并停止 Node.js 服务进程...
+echo Stopping Node.js service processes...
 echo.
 
-REM 查找并结束占用 3000、3001、3002 端口的进程
-echo [1/3] 检查端口 3000 (Frontend)...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do (
-    echo        发现进程 PID: %%a，正在结束...
-    taskkill /F /PID %%a 2>nul
-)
-
-echo [2/3] 检查端口 3001 (Blind_map Backend)...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3001 ^| findstr LISTENING') do (
-    echo        发现进程 PID: %%a，正在结束...
-    taskkill /F /PID %%a 2>nul
-)
-
-echo [3/3] 检查端口 3002 (Nav Agent Backend)...
+echo [1/3] Checking port 3002 (Unified Backend)...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3002 ^| findstr LISTENING') do (
-    echo        发现进程 PID: %%a，正在结束...
+    echo        Found PID: %%a, killing...
+    taskkill /F /PID %%a 2>nul
+)
+
+echo [2/3] Checking port 5173 (Frontend)...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') do (
+    echo        Found PID: %%a, killing...
+    taskkill /F /PID %%a 2>nul
+)
+
+echo [3/3] Checking legacy ports (3000/3001)...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3001 ^| findstr LISTENING') do (
+    echo        Found PID on 3001: %%a, killing...
+    taskkill /F /PID %%a 2>nul
+)
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do (
+    echo        Found PID on 3000: %%a, killing...
     taskkill /F /PID %%a 2>nul
 )
 
 echo.
 echo ============================================
-echo  所有服务已停止！
+echo  All services stopped!
 echo ============================================
 echo.
 pause

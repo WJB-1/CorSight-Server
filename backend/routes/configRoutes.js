@@ -367,4 +367,62 @@ router.post('/models/text', (req, res) => {
   }
 });
 
+/**
+ * GET /api/config/llm/probed-models
+ * 获取探测后的可用模型列表，按视觉/文本分类
+ * 只返回探测通过的模型，带响应延迟信息
+ */
+router.get('/probed-models', async (req, res) => {
+  try {
+    console.log('[configRoutes] 获取探测后的可用模型列表...');
+
+    // 执行探测
+    const probeResults = await modelTester.probeAvailableModels();
+
+    // 过滤出可用的模型
+    const availableModels = probeResults.filter(r => r.status === 'available');
+
+    // 按视觉/文本分类
+    const visionModels = [];
+    const textModels = [];
+
+    for (const model of availableModels) {
+      const modelInfo = {
+        name: model.model,
+        provider: model.provider,
+        response_time_ms: model.response_time_ms,
+        display_name: `${model.model} (${model.response_time_ms}ms)`
+      };
+
+      if (llmConfig.isMultimodalSupported(model.model)) {
+        visionModels.push(modelInfo);
+      } else {
+        textModels.push(modelInfo);
+      }
+    }
+
+    // 按延迟排序
+    visionModels.sort((a, b) => a.response_time_ms - b.response_time_ms);
+    textModels.sort((a, b) => a.response_time_ms - b.response_time_ms);
+
+    res.json({
+      success: true,
+      data: {
+        vision: visionModels,
+        text: textModels,
+        total_available: availableModels.length,
+        last_probed_at: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('[configRoutes] 获取探测模型列表失败:', error.message);
+    res.status(500).json({
+      success: false,
+      error: '获取探测模型列表失败',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

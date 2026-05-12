@@ -19,7 +19,7 @@ model_type: vision
 ### 当前导航上下文
 
 - 动作：{{action}}
-- 转向方位：{{clock_direction}}
+- 相对方向：{{clock_direction}}
 
 ### 必须包含的信息
 
@@ -64,7 +64,7 @@ model_type: vision
   "landmarks": [
     {
       "description": "地标描述（触觉/听觉）",
-      "direction": "相对方向（时钟方位）",
+      "direction": "相对方向（左转/右转/直行等）",
       "distance": "距离（米）"
     }
   ],
@@ -79,7 +79,7 @@ model_type: vision
 | 变量名 | 类型 | 描述 | 示例 |
 |--------|------|------|------|
 | `action` | string | 当前动作 | "过马路" |
-| `clock_direction` | string | 转向方位 | "12点钟方向" |
+| `clock_direction` | string | 相对方向 | "直行" |
 
 ---
 

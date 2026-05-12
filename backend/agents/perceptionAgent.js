@@ -1,37 +1,52 @@
 /**
- * 环境感知 Agent
- * 
+ * 环境感知 Agent (Master Dispatcher)
+ *
  * 模块 4.3：视觉提线木偶 (Perception Agent)
- * 
+ *
  * 功能：
- * - 遍历 IR JSON 中的关键节点
+ * - 遍历 IR JSON 中的关键节点和采样节点
  * - 拉取 MongoDB 中的 8 方位街景图
- * - 送入 LLM 提取盲道、障碍物等微观环境细节
+ * - 根据用户朝向和场景类型筛选相关图片
+ * - 通过 Agent 注册中心分发到对应的子 Agent 处理
+ * - 收集子 Agent 结果并附加到节点
  */
 
 const corsightService = require('../services/corsightService');
-const llmClient = require('../services/llmClient');
+const { getAgent } = require('./index');
 const { selectPromptForNode } = require('../prompts/sceneScoutPrompts');
 
 /**
+ * 8方向顺序（顺时针）
+ */
+const DIRECTIONS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+/**
+ * 方向到索引的映射
+ */
+const DIR_INDEX = {
+  'N': 0, 'NE': 1, 'E': 2, 'SE': 3,
+  'S': 4, 'SW': 5, 'W': 6, 'NW': 7
+};
+
+/**
  * 富化节点数据
- * 为每个关键节点添加视觉感知信息
+ * 为每个节点添加视觉感知信息
  *
- * @param {Array} keyNodes - Phase 3 生成的关键节点数组
+ * @param {Array} nodes - IR 生成的节点数组（包含 key 和 sample 类型）
  * @returns {Promise<Array>} 富化后的节点数组
  */
-async function enrichNodes(keyNodes) {
-    if (!Array.isArray(keyNodes) || keyNodes.length === 0) {
+async function enrichNodes(nodes) {
+    if (!Array.isArray(nodes) || nodes.length === 0) {
         console.log('[perceptionAgent] 节点数组为空，跳过感知处理');
-        return keyNodes;
+        return nodes;
     }
 
-    console.log(`[perceptionAgent] 开始处理 ${keyNodes.length} 个节点的视觉感知（并发模式）`);
+    console.log(`[perceptionAgent] 开始处理 ${nodes.length} 个节点的视觉感知（并发模式）`);
     const startTime = Date.now();
 
-    // 优化：并发处理所有节点
-    const processingPromises = keyNodes.map(async (node, index) => {
-        console.log(`[perceptionAgent] 启动节点 ${index + 1}/${keyNodes.length} 处理: ${node.action || '未知道作'}`);
+    // 并发处理所有节点
+    const processingPromises = nodes.map(async (node, index) => {
+        console.log(`[perceptionAgent] 启动节点 ${index + 1}/${nodes.length} 处理: ${node.action || '未知动作'} (${node.node_type || 'key'})`);
 
         try {
             // 1. 提取节点坐标
@@ -66,10 +81,10 @@ async function enrichNodes(keyNodes) {
             const nearestPoint = nearbyPoints[0];
             console.log(`[perceptionAgent] 节点 ${node.node_index} 找到最近采样点: ${nearestPoint.point_id}, 距离: ${nearestPoint.distance_meters}m`);
 
-            // 4. 获取图片路径
-            const imagePaths = extractImagePaths(nearestPoint);
+            // 4. 获取所有图片路径
+            const allImagePaths = extractImagePaths(nearestPoint);
 
-            if (imagePaths.length === 0) {
+            if (allImagePaths.length === 0) {
                 console.warn(`[perceptionAgent] 采样点 ${nearestPoint.point_id} 无可用图片`);
                 return {
                     ...node,
@@ -78,22 +93,33 @@ async function enrichNodes(keyNodes) {
                 };
             }
 
-            // 5. 根据节点类型选择提示词
+            // 5. 根据用户朝向和场景类型筛选相关图片
+            const { selectedPaths, facingDirection, annotatedDirections } = selectRelevantImages(
+                node,
+                allImagePaths
+            );
+
+            console.log(`[perceptionAgent] 节点 ${node.node_index} 从 ${allImagePaths.length} 张图筛选为 ${selectedPaths.length} 张，面向: ${facingDirection || '未知'}`);
+
+            // 6. 确定场景类型
             const promptSelection = selectPromptForNode({
                 ...node,
                 road: node.road || nearestPoint.scene_description
             });
 
-            console.log(`[perceptionAgent] 节点 ${node.node_index} 使用提示词类型: ${promptSelection.type}`);
+            console.log(`[perceptionAgent] 节点 ${node.node_index} 场景类型: ${promptSelection.type}`);
 
-            // 6. 调用 LLM 进行视觉分析
-            const perceptionResult = await analyzeWithLLM(
-                promptSelection.prompt,
-                imagePaths,
-                node
+            // 7. 从注册中心获取对应的子 Agent
+            const agent = getAgent(promptSelection.type);
+
+            // 8. 调用子 Agent 进行分析
+            const perceptionResult = await agent.analyze(
+                node,
+                selectedPaths,
+                facingDirection
             );
 
-            // 7. 将感知结果附加到节点
+            // 9. 将感知结果附加到节点
             console.log(`[perceptionAgent] 节点 ${node.node_index} 视觉感知完成`);
             return {
                 ...node,
@@ -102,14 +128,15 @@ async function enrichNodes(keyNodes) {
                     point_distance: nearestPoint.distance_meters,
                     scene_description: nearestPoint.scene_description,
                     analysis: perceptionResult,
-                    prompt_type: promptSelection.type
+                    prompt_type: promptSelection.type,
+                    image_count: selectedPaths.length,
+                    facing_direction: facingDirection
                 }
             };
 
         } catch (error) {
             console.error(`[perceptionAgent] 处理节点 ${node.node_index} 失败:`, error.message);
 
-            // 失败时不中断整个流程，记录错误并继续
             return {
                 ...node,
                 perception_data: null,
@@ -118,212 +145,146 @@ async function enrichNodes(keyNodes) {
         }
     });
 
-    // 并发执行所有节点的处理
     const enrichedNodes = await Promise.all(processingPromises);
 
     const duration = Date.now() - startTime;
-    console.log(`\n[perceptionAgent] 所有节点处理完成，耗时: ${duration}ms，成功: ${enrichedNodes.filter(n => n.perception_data).length}/${keyNodes.length}`);
+    console.log(`\n[perceptionAgent] 所有节点处理完成，耗时: ${duration}ms，成功: ${enrichedNodes.filter(n => n.perception_data).length}/${nodes.length}`);
 
     return enrichedNodes;
 }
 
 /**
  * 从节点数据中提取坐标
- * 
+ *
  * @param {Object} node - 节点数据
  * @returns {Object|null} { lat, lng } 或 null
  */
 function extractCoordinates(node) {
-    // 尝试多种可能的坐标格式
-
-    // 1. 直接坐标字段
     if (node.lat && node.lng) {
         return { lat: parseFloat(node.lat), lng: parseFloat(node.lng) };
     }
-
     if (node.latitude && node.longitude) {
         return { lat: parseFloat(node.latitude), lng: parseFloat(node.longitude) };
     }
-
-    // 2. 从 polyline 字段提取（高德返回的格式）
     if (node.polyline) {
         const coords = parsePolyline(node.polyline);
         if (coords.length > 0) {
-            // 取中点或终点
             const midIndex = Math.floor(coords.length / 2);
             return coords[midIndex];
         }
     }
-
-    // 3. 从 instruction 中尝试提取坐标（不太可靠，作为后备）
-    // 通常 instruction 中不包含坐标
-
     return null;
 }
 
 /**
  * 解析高德 polyline 字符串
- * 
+ *
  * @param {string} polyline - 格式: "lng,lat;lng,lat;..."
  * @returns {Array} 坐标数组
  */
 function parsePolyline(polyline) {
-    if (!polyline || typeof polyline !== 'string') {
-        return [];
-    }
-
+    if (!polyline || typeof polyline !== 'string') return [];
     try {
         return polyline.split(';').map(point => {
             const [lng, lat] = point.split(',').map(Number);
             return { lat, lng };
         }).filter(coord => !isNaN(coord.lat) && !isNaN(coord.lng));
     } catch (e) {
-        console.error('[perceptionAgent] 解析 polyline 失败:', e.message);
         return [];
     }
 }
 
 /**
  * 从采样点数据中提取图片路径
- * 
+ *
  * @param {Object} point - 采样点数据
- * @returns {Array<string>} 图片路径数组
+ * @returns {Array<{path: string, direction: string}>} 图片路径数组
  */
 function extractImagePaths(point) {
-    if (!point.images) {
-        return [];
-    }
-
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    if (!point.images) return [];
     const paths = [];
-
-    // 提取 8 方位图片
-    directions.forEach(dir => {
+    DIRECTIONS.forEach(dir => {
         if (point.images[dir]) {
-            paths.push(point.images[dir]);
+            paths.push({ path: point.images[dir], direction: dir });
         }
     });
-
     return paths;
 }
 
 /**
- * 使用 LLM 分析街景图片
- * 
- * @param {string} prompt - 提示词
- * @param {Array<string>} imagePaths - 图片路径数组
- * @param {Object} node - 节点上下文
- * @returns {Promise<Object>} 分析结果
+ * 根据用户朝向和场景类型筛选相关图片
+ *
+ * @param {Object} node - 节点数据
+ * @param {Array<{path: string, direction: string}>} allImagePaths - 所有图片路径
+ * @returns {Object} { selectedPaths, facingDirection, annotatedDirections }
  */
-async function analyzeWithLLM(prompt, imagePaths, node) {
-    try {
-        console.log(`[perceptionAgent] 调用 LLM 分析，图片数: ${imagePaths.length}`);
+function selectRelevantImages(node, allImagePaths) {
+    const sceneType = node.node_type === 'sample' ? 'path' : (node.prompt_type || 'path');
 
-        // 优化：调用 LLM 客户端，指定使用视觉模型
-        const result = await llmClient.generateContent(
-            prompt,
-            imagePaths,
-            {
-                temperature: 0.1,
-                topP: 0.85,
-                maxTokens: 1000,
-                modelType: 'vision'  // 指定使用视觉模型
-            }
-        );
+    // 获取用户朝向
+    const facingDir = node.heading_direction || 'N';
+    const facingIdx = DIR_INDEX[facingDir] || 0;
 
-        if (!result.success) {
-            throw new Error(result.error || 'LLM 调用失败');
-        }
+    let relevantDirs;
 
-        // 解析 LLM 返回的 JSON
-        const analysis = parseLLMResponse(result.text);
+    if (sceneType === 'intersection') {
+        // 路口：正前方 + 左右 + 正后方（过马路需观察对面）
+        relevantDirs = [
+            DIRECTIONS[(facingIdx - 1 + 8) % 8], // 左前方
+            DIRECTIONS[facingIdx],                // 正前方
+            DIRECTIONS[(facingIdx + 1) % 8],      // 右前方
+            DIRECTIONS[(facingIdx + 4) % 8]       // 正后方（对面）
+        ];
+    } else if (['overpass', 'underpass', 'steps', 'elevator', 'escalator'].includes(sceneType)) {
+        // 地形特征：正前方 + 左右（寻找入口/结构）
+        relevantDirs = [
+            DIRECTIONS[(facingIdx - 1 + 8) % 8], // 左前方
+            DIRECTIONS[facingIdx],                // 正前方
+            DIRECTIONS[(facingIdx + 1) % 8]       // 右前方
+        ];
+    } else {
+        // 路段/采样点：正前方 + 左右
+        relevantDirs = [
+            DIRECTIONS[(facingIdx - 1 + 8) % 8], // 左前方
+            DIRECTIONS[facingIdx],                // 正前方
+            DIRECTIONS[(facingIdx + 1) % 8]       // 右前方
+        ];
+    }
 
+    // 去重
+    relevantDirs = [...new Set(relevantDirs)];
+
+    // 筛选图片
+    const selected = allImagePaths.filter(img => relevantDirs.includes(img.direction));
+
+    // 如果筛选后为空（异常情况），返回所有图片
+    if (selected.length === 0) {
         return {
-            success: true,
-            raw_response: result.text,
-            parsed: analysis,
-            provider: result.provider,
-            fallback: result.fallback || false
-        };
-
-    } catch (error) {
-        console.error('[perceptionAgent] LLM 分析失败:', error.message);
-
-        return {
-            success: false,
-            error: error.message,
-            raw_response: null,
-            parsed: null
+            selectedPaths: allImagePaths.map(img => img.path),
+            facingDirection: facingDir,
+            annotatedDirections: DIRECTIONS
         };
     }
-}
 
-/**
- * 解析 LLM 返回的响应文本
- * 尝试提取 JSON 部分
- * 
- * @param {string} text - LLM 原始响应
- * @returns {Object|null} 解析后的 JSON 或 null
- */
-function parseLLMResponse(text) {
-    if (!text) return null;
-
-    try {
-        // 1. 尝试直接解析
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            // 继续尝试其他方式
-        }
-
-        // 2. 尝试提取 JSON 代码块
-        const jsonBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (jsonBlockMatch) {
-            return JSON.parse(jsonBlockMatch[1]);
-        }
-
-        // 3. 尝试找到 JSON 对象的开始和结束
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-
-        // 4. 如果都无法解析，返回原始文本
-        return {
-            raw_text: text,
-            parse_error: '无法解析为 JSON'
-        };
-
-    } catch (error) {
-        console.error('[perceptionAgent] 解析 LLM 响应失败:', error.message);
-        return {
-            raw_text: text,
-            parse_error: error.message
-        };
-    }
-}
-
-/**
- * 延迟函数
- * 
- * @param {number} ms - 毫秒
- * @returns {Promise<void>}
- */
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return {
+        selectedPaths: selected.map(img => img.path),
+        facingDirection: facingDir,
+        annotatedDirections: relevantDirs
+    };
 }
 
 /**
  * 测试感知 Agent
- * 
+ *
  * @returns {Promise<Object>} 测试结果
  */
 async function testPerceptionAgent() {
     const testNodes = [
         {
             node_index: 1,
+            node_type: 'key',
             action: '上天桥',
-            clock_direction: '11点钟方向',
+            heading_direction: 'NE',
             instruction: '向东南步行50米上天桥',
             road: '东长安街',
             distance: '50米',
@@ -349,5 +310,10 @@ async function testPerceptionAgent() {
 
 module.exports = {
     enrichNodes,
-    testPerceptionAgent
+    testPerceptionAgent,
+    // 导出工具函数供测试和 Agent 使用
+    extractCoordinates,
+    parsePolyline,
+    extractImagePaths,
+    selectRelevantImages
 };

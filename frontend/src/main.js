@@ -7,6 +7,7 @@ import { ConfigPanel } from './components/ConfigPanel.js';
 import { MapViewer } from './components/MapViewer.js';
 import { StreetViewModal } from './components/StreetViewModal.js';
 import { PreviewPlayer } from './components/PreviewPlayer.js';
+import { MonitorConsole } from './components/MonitorConsole.js';
 import { generateNavigationPreview, testNavigationPreview, previewHealthCheck } from './services/api.js';
 
 // 全局状态
@@ -40,6 +41,12 @@ async function init() {
     const modal = new StreetViewModal('street-view-modal');
     viewer.onMarkerClick = (p) => modal.open(p);
     viewer.onContextMenu = (lng, lat, px) => showMenu(lng, lat, px, viewer);
+
+    // 初始化监控控制台
+    const monitorConsole = new MonitorConsole('monitor-console-modal');
+    document.getElementById('monitor-toggle-btn').addEventListener('click', () => {
+      monitorConsole.open();
+    });
   };
 
   // 绑定导航测试按钮

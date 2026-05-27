@@ -12,6 +12,7 @@ dotenv.config({ override: false, silent: true });
 const config = require('./config/envConfig');
 const { connectDB } = require('./config/db');
 const { connectDatabase } = require('./config/database');
+const { requestMonitorMiddleware, sseHandler } = require('./middleware/requestMonitor');
 
 const app = express();
 const PORT = config.server.PORT;
@@ -22,9 +23,13 @@ const PORT = config.server.PORT;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestMonitorMiddleware);
 
 // 静态文件服务 - 用于访问上传的图片
 app.use(express.static(path.join(__dirname, 'public')));
+
+// SSE 监控端点
+app.get('/api/monitor/stream', sseHandler);
 
 // ============================================
 // 导入路由
@@ -138,7 +143,7 @@ async function startServer() {
     }
 
     // 启动 HTTP 服务
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log('='.repeat(50));
       console.log(`[Server] CorSight Unified Server started`);
       console.log(`[Server] Port: ${PORT}`);
@@ -157,4 +162,21 @@ async function startServer() {
 
 startServer();
 
-module.exports = app;
+    // 优雅关闭
+    process.on('SIGTERM', () => {
+      console.log('[Server] SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        console.log('[Server] HTTP server closed');
+        process.exit(0);
+      });
+    });
+
+  } catch (error) {
+    console.error('[Server] Failed to start:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
+module.exports = { app, server };

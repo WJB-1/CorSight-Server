@@ -35,32 +35,58 @@ if not exist "%ROOT_DIR%frontend\node_modules" (
 echo [Check] All dependencies ready!
 echo.
 
-echo [1/2] Starting Unified Backend (Port 3002)...
-start "CorSight Backend - Port 3002" cmd /k "%~dp0scripts\start-backend.bat"
+echo [1/2] Starting Unified Backend...
+start "CorSight Backend" cmd /k "%~dp0scripts\start-backend.bat"
 
 echo.
 echo [2/2] Waiting for backend initialization (5s)...
 timeout /t 5 /nobreak >nul
 
 echo.
-echo Starting Frontend Dev Server (Port 5173)...
-start "CorSight Frontend - Port 5173" cmd /k "%~dp0scripts\start-frontend.bat"
+echo Starting Frontend Dev Server...
+start "CorSight Frontend" cmd /k "%~dp0scripts\start-frontend.bat"
 
+echo.
+echo ============================================
+echo   Choose startup mode
+echo ============================================
+echo.
+echo   [1] Local only (default)
+echo   [2] With ngrok (内网穿透)
+echo.
+set /p "MODE=Enter 1 or 2 (default 1): "
+if "%MODE%"=="2" goto with_ngrok
+goto done
+
+:with_ngrok
+echo.
+echo [3/3] Starting ngrok tunnel (Frontend :5173)...
+start "CorSight ngrok" cmd /k ""%USERPROFILE%\ngrok.exe" http 5173 --log=stdout"
+echo.
+echo ============================================
+echo   ngrok starting...
+echo   Check the new "CorSight ngrok" window
+echo   for the public URL (e.g. https://xxx.ngrok-free.app)
+echo ============================================
+echo   NOTE: Free ngrok URL changes on each restart!
+goto done
+
+:done
 echo.
 echo ============================================
 echo   All services started!
 echo ============================================
 echo.
 echo Service List:
-echo   - Unified Backend: http://localhost:3002
+echo   - Unified Backend: http://localhost:5741
 echo   - Frontend Dev:    http://localhost:5173
 echo.
 echo API Endpoints:
-echo   - Health Check:    http://localhost:3002/health
-echo   - Preview API:     http://localhost:3002/api/navigation/preview
-echo   - Nearby Points:   http://localhost:3002/api/navigation/nearby
-echo   - Upload:          http://localhost:3002/api/upload/sampling_point
-echo   - Test Route:      http://localhost:3002/api/navigation/preview/test
+echo   - Health Check:    http://localhost:5741/health
+echo   - Preview API:     http://localhost:5741/api/navigation/preview
+echo   - Nearby Points:   http://localhost:5741/api/navigation/nearby
+echo   - Upload:          http://localhost:5741/api/upload/sampling_point
+echo   - Test Route:      http://localhost:5741/api/navigation/preview/test
 echo.
 echo Tips:
 echo   - Close this window will NOT stop services

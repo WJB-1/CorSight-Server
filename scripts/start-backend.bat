@@ -1,6 +1,6 @@
 @echo off
 chcp 936 >nul
-title CorSight Backend - Port 3002
+title CorSight Backend
 
 set "BACKEND_DIR=%~dp0..\backend"
 

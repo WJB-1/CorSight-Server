@@ -10,7 +10,9 @@
  */
 
 const express = require('express');
-const { findNearbyPoints } = require('../models/SamplingPoint');
+const { findNearbyPoints, deleteSamplingPoint } = require('../models/SamplingPoint');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
@@ -150,5 +152,53 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   
   return R * c;
 }
+
+/**
+ * DELETE /api/navigation/point/:pointId
+ * 删除采样点
+ */
+router.delete('/point/:pointId', async (req, res) => {
+  try {
+    const { pointId } = req.params;
+
+    const result = await deleteSamplingPoint(pointId);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: '采样点不存在'
+      });
+    }
+
+    // 删除关联的图片文件
+    const uploadDir = path.join(__dirname, '../public/images');
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    directions.forEach(dir => {
+      const imgPath = path.join(uploadDir, `${pointId}_${dir}.jpg`);
+      if (fs.existsSync(imgPath)) {
+        try {
+          fs.unlinkSync(imgPath);
+          console.log(`[Delete] Removed image: ${imgPath}`);
+        } catch (e) {
+          console.warn(`[Delete] Failed to remove image: ${e.message}`);
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '采样点删除成功',
+      data: { point_id: pointId }
+    });
+
+  } catch (error) {
+    console.error('[Navigation] 删除采样点时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;

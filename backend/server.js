@@ -154,13 +154,6 @@ async function startServer() {
       console.log(`[Server] Upload API: http://localhost:${PORT}/api/upload/sampling_point`);
       console.log('='.repeat(50));
     });
-  } catch (error) {
-    console.error('[Server] Failed to start:', error);
-    process.exit(1);
-  }
-}
-
-startServer();
 
     // 优雅关闭
     process.on('SIGTERM', () => {
@@ -179,4 +172,4 @@ startServer();
 
 startServer();
 
-module.exports = { app, server };
+module.exports = { app };

@@ -1,12 +1,14 @@
 /**
  * API 服务模块
- * 封装 HTTP 请求，对接后端 3002 端口
+ * 封装 HTTP 请求，对接后端
  *
- * 注意: vite.config.js 已配置代理 /api -> http://localhost:3002
- * 所以这里使用相对路径，让请求走 vite 代理
+ * 本地开发: vite.config.js 代理 /api -> http://localhost:5741
+ * 外网访问: 通过 window.API_BASE_URL 动态设置（如 frp 地址 http://114.132.86.138:5000）
  */
 
-const BASE_URL = '';
+const BASE_URL = typeof window !== 'undefined' && window.API_BASE_URL
+  ? window.API_BASE_URL
+  : '';
 
 async function request(url, options = {}) {
   const response = await fetch(`${BASE_URL}${url}`, {
@@ -48,11 +50,26 @@ export async function getNearbyPoints(lat, lng, radius = 1000) {
 }
 
 /**
- * 健康检查
+ * 获取所有采样点（不分页）
+ */
+export async function getAllPoints() {
+  return request('/api/navigation/points');
+}
+
+/**
+ * 删除采样点
+ */
+export async function deletePoint(pointId) {
+  return request(`/api/navigation/point/${pointId}`, {
+    method: 'DELETE'
+  });
+}
+
+/**
+ * 健康检查（通过 /api 代理）
  */
 export async function healthCheck() {
-  const response = await fetch(`${BASE_URL}/health`);
-  return response.json();
+  return request('/api/navigation/stats');
 }
 
 /**
@@ -79,11 +96,21 @@ export async function previewHealthCheck() {
   return request('/api/navigation/preview/health');
 }
 
+/**
+ * 获取统计信息
+ */
+export async function getStats() {
+  return request('/api/navigation/stats');
+}
+
 export default {
   getActiveLLMConfig,
   getEnvInfo,
   getNearbyPoints,
+  getAllPoints,
+  deletePoint,
   healthCheck,
+  getStats,
   generateNavigationPreview,
   testNavigationPreview,
   previewHealthCheck

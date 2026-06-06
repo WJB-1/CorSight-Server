@@ -116,4 +116,111 @@ router.get('/point/:pointId', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/navigation/points
+ * 获取所有采样点（不分页）
+ */
+router.get('/points', async (req, res) => {
+  try {
+    const points = await corsightService.getAllPoints();
+
+    res.json({
+      success: true,
+      data: {
+        total_count: points.length,
+        points: points
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in /api/navigation/points:', error.message);
+
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/navigation/stats
+ * 获取采样点统计信息
+ */
+router.get('/stats', async (req, res) => {
+  try {
+    const { SamplingPoint } = require('../models/SamplingPoint');
+    const totalPoints = await SamplingPoint.countDocuments();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayPoints = await SamplingPoint.countDocuments({ createdAt: { $gte: todayStart } });
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+    const weekPoints = await SamplingPoint.countDocuments({ createdAt: { $gte: weekStart } });
+
+    res.json({
+      success: true,
+      data: {
+        total_points: totalPoints,
+        today_points: todayPoints,
+        week_points: weekPoints
+      }
+    });
+  } catch (error) {
+    console.error('Error in /api/navigation/stats:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/navigation/point/:pointId
+ * 删除采样点
+ */
+router.delete('/point/:pointId', async (req, res) => {
+  try {
+    const { pointId } = req.params;
+    const { deleteSamplingPoint } = require('../models/SamplingPoint');
+    const fs = require('fs');
+    const path = require('path');
+
+    const result = await deleteSamplingPoint(pointId);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        error: 'Point not found'
+      });
+    }
+
+    // 删除关联的图片文件
+    const uploadDir = path.join(__dirname, '../public/images');
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    directions.forEach(dir => {
+      const imgPath = path.join(uploadDir, `${pointId}_${dir}.jpg`);
+      if (fs.existsSync(imgPath)) {
+        try {
+          fs.unlinkSync(imgPath);
+          console.log(`[Delete] Removed image: ${imgPath}`);
+        } catch (e) {
+          console.warn(`[Delete] Failed to remove image: ${e.message}`);
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '采样点删除成功',
+      data: { point_id: pointId }
+    });
+
+  } catch (error) {
+    console.error('Error in DELETE /api/navigation/point/:pointId:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

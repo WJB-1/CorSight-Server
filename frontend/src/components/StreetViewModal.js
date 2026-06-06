@@ -129,12 +129,23 @@ export class StreetViewModal {
       }
     });
 
-    // 缩略图点击
+    // 缩略图点击 - 打开大图预览
     this.container.querySelectorAll('.thumbnail-item').forEach(item => {
       item.addEventListener('click', () => {
         const direction = item.dataset.direction;
-        this.showImage(direction);
+        const imageUrl = this.images[direction];
+        if (imageUrl && window.appState.imagePreviewModal) {
+          window.appState.imagePreviewModal.open(imageUrl);
+        }
       });
+    });
+
+    // 主图点击 - 打开大图预览
+    this.elements.mainImage.addEventListener('click', () => {
+      const currentUrl = this.elements.mainImage.src;
+      if (currentUrl && window.appState.imagePreviewModal) {
+        window.appState.imagePreviewModal.open(currentUrl);
+      }
     });
   }
 

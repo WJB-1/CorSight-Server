@@ -1,6 +1,6 @@
 const axios = require('axios');
 const config = require('../config/envConfig');
-const { findNearbyPoints } = require('../models/SamplingPoint');
+const { findNearbyPoints, findAllPoints } = require('../models/SamplingPoint');
 
 /**
  * CorSight 空间查询服务
@@ -89,18 +89,22 @@ function transformImageUrls(images, pointId) {
 
   const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const result = {};
-  const selfBaseUrl = `http://localhost:${process.env.PORT || 3002}`;
 
   directions.forEach(dir => {
     if (images[dir]) {
       if (images[dir].startsWith('http')) {
-        result[dir] = images[dir];
+        // 完整 URL，提取路径部分
+        try {
+          const url = new URL(images[dir]);
+          result[dir] = url.pathname;
+        } catch {
+          result[dir] = images[dir];
+        }
       } else {
         const filename = images[dir].includes('/')
           ? images[dir].split('/').pop()
           : `${pointId}_${dir}.jpg`;
-        // 优先使用本机地址（已合并服务）
-        result[dir] = `${selfBaseUrl}/images/${filename}`;
+        result[dir] = `/images/${filename}`;
       }
     }
   });
@@ -126,7 +130,39 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+/**
+ * 获取所有采样点
+ */
+async function getAllPoints() {
+  console.log('[CorSight] Querying all sampling points');
+
+  try {
+    const allPoints = await findAllPoints();
+    console.log(`[CorSight] Found ${allPoints.length} points from local database`);
+
+    const formattedPoints = allPoints.map((point, index) => {
+      const pointLat = point.location.coordinates[1];
+      const pointLon = point.location.coordinates[0];
+
+      return {
+        rank: index + 1,
+        point_id: point.point_id,
+        location: { latitude: pointLat, longitude: pointLon },
+        scene_description: point.scene_description,
+        images: transformImageUrls(point.images, point.point_id),
+        distance_meters: 0
+      };
+    });
+
+    return formattedPoints;
+  } catch (dbError) {
+    console.error(`[CorSight] Local database query failed: ${dbError.message}`);
+    throw dbError;
+  }
+}
+
 module.exports = {
   getNearbyPoints,
-  getPointById
+  getPointById,
+  getAllPoints
 };

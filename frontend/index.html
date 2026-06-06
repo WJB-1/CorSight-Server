@@ -4,82 +4,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>瞳心引航测试版1.0</title>
-
-  <!-- 高德地图安全密钥配置 -->
-  <script type="text/javascript">
-    window._AMapSecurityConfig = {
-      securityJsCode: '3bbda8110ca478853e8500df55ee9a7d'
-    }
-  </script>
-
-  <!-- 高德地图 JSAPI Loader -->
-  <script src="https://webapi.amap.com/loader.js"></script>
-
+  <title>CorSight Console</title>
   <link rel="stylesheet" href="./src/style.css">
 </head>
 
 <body>
-  <div id="app">
-    <header class="app-header">
-      <h1>👁️ 瞳心引航测试版1.0</h1>
-      <div class="header-actions">
-        <span class="version-tag">v1.0.0-beta</span>
-        <button class="btn btn-sm btn-console" id="monitor-toggle-btn">📡 控制台</button>
-      </div>
-    </header>
-
-    <main class="app-main">
-      <aside class="sidebar">
-        <div id="config-panel-container"></div>
-
-        <div class="route-info" id="route-info">
-          <h4>📍 导航选点</h4>
-          <div class="route-point">
-            <span class="point-label origin">起点</span>
-            <span class="point-value" id="origin-value">未设置</span>
-          </div>
-          <div class="route-point">
-            <span class="point-label destination">终点</span>
-            <span class="point-value" id="destination-value">未设置</span>
-          </div>
-          <button id="generate-preview-btn" class="btn btn-primary btn-generate" disabled>
-            🎬 生成推演播报
-          </button>
-        </div>
-
-        <!-- 导航推演面板 -->
-        <div class="nav-preview-panel" id="nav-preview-panel">
-          <h4>🧭 路线推演</h4>
-          <div class="preview-buttons">
-            <button id="test-nav-btn" class="btn btn-secondary btn-sm">
-              🚀 快速推演
-            </button>
-            <button id="health-check-btn" class="btn btn-secondary btn-sm">
-              💓 服务检查
-            </button>
-          </div>
-          <div id="preview-loading" class="preview-loading hidden">
-            <span class="loading-spinner"></span>
-            <span>正在规划路径...</span>
-          </div>
-          <div id="preview-result" class="preview-result hidden">
-            <div class="preview-summary"></div>
-            <div class="preview-nodes"></div>
-          </div>
-          <div id="preview-error" class="preview-error hidden"></div>
-        </div>
-      </aside>
-
-      <section class="map-container">
-        <div id="map-viewer"></div>
-      </section>
-    </main>
-
-    <div id="street-view-modal" class="modal"></div>
-    <div id="monitor-console-modal" class="modal"></div>
-  </div>
-
+  <div id="app"></div>
+  <script>
+    // 支持通过 URL 参数或 localStorage 设置后端地址
+    // 例如: ?api_base=https://xxx.ngrok-free.app
+    const params = new URLSearchParams(location.search);
+    const apiBase = params.get('api_base') || localStorage.getItem('API_BASE_URL');
+    if (apiBase) {
+      window.API_BASE_URL = apiBase.replace(/\/$/, '');
+      localStorage.setItem('API_BASE_URL', window.API_BASE_URL);
+    }
+  </script>
   <script type="module" src="./src/main.js"></script>
 </body>
 

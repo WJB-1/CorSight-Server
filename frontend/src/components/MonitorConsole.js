@@ -19,27 +19,25 @@ export class MonitorConsole {
   init() {
     this.render();
     this.bindEvents();
-    this.connectSSE();
   }
 
   render() {
     this.container.innerHTML = `
-      <div class="modal-content monitor-console-modal">
-        <div class="modal-header monitor-header">
-          <h3>📡 API 监控控制台</h3>
-          <div class="monitor-header-actions">
-            <span class="monitor-status" id="monitor-status">
-              <span class="status-dot connecting"></span>
-              <span class="status-text">连接中...</span>
-            </span>
-            <button class="modal-close" id="monitor-close">&times;</button>
+      <div class="monitor-console-wrapper" style="display:flex;flex-direction:column;height:100%;background:#0f0f23;border-radius:0 0 8px 8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#16213e;border-bottom:1px solid #333;">
+          <span class="monitor-status" id="monitor-status">
+            <span class="status-dot" style="width:8px;height:8px;border-radius:50%;background:#faad14;display:inline-block;animation:pulse 1.5s infinite;"></span>
+            <span class="status-text" style="color:#e0e0e0;font-size:12px;margin-left:6px;">未连接</span>
+          </span>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <button class="btn btn-sm btn-secondary" id="monitor-connect" style="padding:4px 12px;font-size:12px;border:1px solid #444;background:#1a1a2e;color:#e0e0e0;border-radius:4px;cursor:pointer;">连接</button>
+            <button class="btn btn-sm btn-secondary" id="monitor-clear" style="padding:4px 12px;font-size:12px;border:1px solid #444;background:#1a1a2e;color:#e0e0e0;border-radius:4px;cursor:pointer;">清空</button>
           </div>
         </div>
-
-        <div class="monitor-toolbar">
-          <div class="monitor-filter">
-            <label>方法:</label>
-            <select id="monitor-filter-method">
+        <div style="display:flex;align-items:center;gap:16px;padding:8px 16px;background:#0f0f23;border-bottom:1px solid #222;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+            <span style="color:#aaa;">方法:</span>
+            <select id="monitor-filter-method" style="background:#1a1a2e;color:#e0e0e0;border:1px solid #444;border-radius:4px;padding:3px 8px;font-size:12px;">
               <option value="all">全部</option>
               <option value="GET">GET</option>
               <option value="POST">POST</option>
@@ -47,38 +45,32 @@ export class MonitorConsole {
               <option value="DELETE">DELETE</option>
             </select>
           </div>
-          <div class="monitor-filter">
-            <label>状态:</label>
-            <select id="monitor-filter-status">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+            <span style="color:#aaa;">状态:</span>
+            <select id="monitor-filter-status" style="background:#1a1a2e;color:#e0e0e0;border:1px solid #444;border-radius:4px;padding:3px 8px;font-size:12px;">
               <option value="all">全部</option>
               <option value="2xx">2xx 成功</option>
-              <option value="4xx">4xx 客户端错误</option>
-              <option value="5xx">5xx 服务器错误</option>
+              <option value="4xx">4xx 错误</option>
+              <option value="5xx">5xx 错误</option>
             </select>
           </div>
-          <button class="btn btn-sm btn-secondary" id="monitor-clear">
-            🗑️ 清空
-          </button>
-          <label class="monitor-autoscroll">
-            <input type="checkbox" id="monitor-autoscroll" checked>
-            自动滚动
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#aaa;cursor:pointer;margin-left:auto;">
+            <input type="checkbox" id="monitor-autoscroll" checked> 自动滚动
           </label>
         </div>
-
-        <div class="monitor-body" id="monitor-body">
-          <div class="monitor-log-list" id="monitor-log-list">
-            <div class="monitor-empty">等待请求...</div>
+        <div id="monitor-body" style="flex:1;overflow-y:auto;">
+          <div id="monitor-log-list">
+            <div style="text-align:center;padding:40px;color:#666;font-size:14px;">点击"连接"按钮开始监控</div>
           </div>
         </div>
-
-        <div class="monitor-footer">
+        <div style="padding:8px 16px;background:#16213e;border-top:1px solid #333;font-size:12px;color:#888;text-align:right;">
           <span id="monitor-stats">0 条记录</span>
         </div>
       </div>
     `;
 
     this.elements = {
-      closeBtn: this.container.querySelector('#monitor-close'),
+      connectBtn: this.container.querySelector('#monitor-connect'),
       logList: this.container.querySelector('#monitor-log-list'),
       filterMethod: this.container.querySelector('#monitor-filter-method'),
       filterStatus: this.container.querySelector('#monitor-filter-status'),
@@ -92,17 +84,11 @@ export class MonitorConsole {
   }
 
   bindEvents() {
-    this.elements.closeBtn.addEventListener('click', () => this.close());
-
-    this.container.addEventListener('click', (e) => {
-      if (e.target === this.container) {
-        this.close();
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.isOpen) {
-        this.close();
+    this.elements.connectBtn.addEventListener('click', () => {
+      if (this.eventSource) {
+        this.disconnectSSE();
+      } else {
+        this.connectSSE();
       }
     });
 
@@ -127,12 +113,13 @@ export class MonitorConsole {
   }
 
   connectSSE() {
-    // 直接连接后端端口，绕过 vite 代理（SSE 长连接不被 vite 代理支持）
-    const backendUrl = 'http://localhost:5741';
-    this.eventSource = new EventSource(`${backendUrl}/api/monitor/stream`);
+    this.updateStatus('#faad14', '连接中...');
+    this.elements.connectBtn.textContent = '断开';
+
+    this.eventSource = new EventSource('/api/monitor/stream');
 
     this.eventSource.onopen = () => {
-      this.updateStatus('connected', '已连接');
+      this.updateStatus('#52c41a', '已连接');
     };
 
     this.eventSource.onmessage = (event) => {
@@ -142,18 +129,39 @@ export class MonitorConsole {
           this.addLog(message.data);
         }
       } catch (err) {
-        console.error('[Monitor] Parse error:', err);
+        // ignore parse errors
       }
     };
 
     this.eventSource.onerror = () => {
-      this.updateStatus('error', '连接断开');
+      this.updateStatus('#f5222d', '连接断开');
+      this.elements.connectBtn.textContent = '连接';
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
     };
   }
 
-  updateStatus(state, text) {
-    this.elements.statusDot.className = `status-dot ${state}`;
+  disconnectSSE() {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+    this.updateStatus('#94a3b8', '已断开');
+    this.elements.connectBtn.textContent = '连接';
+  }
+
+  updateStatus(color, text) {
+    this.elements.statusDot.style.background = color;
     this.elements.statusText.textContent = text;
+    if (color === '#52c41a') {
+      this.elements.statusDot.style.animation = 'none';
+    } else if (color === '#faad14') {
+      this.elements.statusDot.style.animation = 'pulse 1.5s infinite';
+    } else {
+      this.elements.statusDot.style.animation = 'none';
+    }
   }
 
   addLog(logEntry) {
@@ -166,14 +174,10 @@ export class MonitorConsole {
 
   getFilteredLogs() {
     return this.logs.filter(log => {
-      if (this.filterMethod !== 'all' && log.method !== this.filterMethod) {
-        return false;
-      }
+      if (this.filterMethod !== 'all' && log.method !== this.filterMethod) return false;
       if (this.filterStatus !== 'all') {
         const prefix = this.filterStatus.charAt(0);
-        if (!String(log.statusCode).startsWith(prefix)) {
-          return false;
-        }
+        if (!String(log.statusCode).startsWith(prefix)) return false;
       }
       return true;
     });
@@ -184,60 +188,55 @@ export class MonitorConsole {
     this.elements.stats.textContent = `${filtered.length} 条记录 / 共 ${this.logs.length} 条`;
 
     if (filtered.length === 0) {
-      this.elements.logList.innerHTML = '<div class="monitor-empty">暂无记录</div>';
+      this.elements.logList.innerHTML = '<div style="text-align:center;padding:40px;color:#666;font-size:14px;">暂无记录</div>';
       return;
     }
 
     this.elements.logList.innerHTML = filtered.map(log => this.renderLogItem(log)).join('');
 
-    if (this.autoScroll && this.isOpen) {
+    if (this.autoScroll) {
       this.elements.body.scrollTop = 0;
     }
   }
 
   renderLogItem(log) {
-    const statusClass = this.getStatusClass(log.statusCode);
+    const statusClass = log.statusCode >= 200 && log.statusCode < 300 ? '#52c41a'
+      : log.statusCode >= 400 && log.statusCode < 500 ? '#faad14'
+      : log.statusCode >= 500 ? '#f5222d' : '#333';
+    const methodColor = log.method === 'GET' ? '#1890ff'
+      : log.method === 'POST' ? '#52c41a'
+      : log.method === 'PUT' ? '#faad14'
+      : log.method === 'DELETE' ? '#f5222d' : '#333';
     const time = new Date(log.timestamp).toLocaleTimeString('zh-CN');
 
     return `
-      <div class="monitor-log-item ${statusClass}">
-        <div class="log-row log-primary">
-          <span class="log-method ${log.method}">${log.method}</span>
-          <span class="log-url" title="${log.url}">${log.url}</span>
-          <span class="log-status">${log.statusCode}</span>
-          <span class="log-duration">${log.duration}ms</span>
-          <span class="log-time">${time}</span>
+      <div style="border-bottom:1px solid #222;padding:10px 16px;font-size:12px;border-left:3px solid ${statusClass};transition:background 0.15s;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-weight:600;padding:2px 8px;border-radius:3px;background:${methodColor};color:#fff;min-width:48px;text-align:center;font-size:11px;">${log.method}</span>
+          <span style="color:#aaa;font-family:monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${log.url}</span>
+          <span style="font-weight:600;color:${statusClass};min-width:36px;text-align:right;">${log.statusCode}</span>
+          <span style="color:#888;min-width:60px;text-align:right;">${log.duration}ms</span>
+          <span style="color:#666;min-width:60px;text-align:right;">${time}</span>
         </div>
         ${log.requestBody ? `
-          <div class="log-row log-body">
-            <span class="log-label">请求:</span>
-            <code class="log-code">${this.escapeHtml(this.formatBody(log.requestBody))}</code>
+          <div style="margin-top:4px;display:flex;gap:8px;">
+            <span style="color:#666;font-size:11px;min-width:32px;">请求</span>
+            <code style="background:#1a1a2e;padding:3px 8px;border-radius:4px;font-family:monospace;font-size:11px;color:#b0b0b0;flex:1;white-space:pre-wrap;word-break:break-all;max-height:60px;overflow-y:auto;">${this.escapeHtml(this.formatBody(log.requestBody))}</code>
           </div>
         ` : ''}
         ${log.responseBody ? `
-          <div class="log-row log-body">
-            <span class="log-label">响应:</span>
-            <code class="log-code">${this.escapeHtml(this.formatBody(log.responseBody))}</code>
+          <div style="margin-top:4px;display:flex;gap:8px;">
+            <span style="color:#666;font-size:11px;min-width:32px;">响应</span>
+            <code style="background:#1a1a2e;padding:3px 8px;border-radius:4px;font-family:monospace;font-size:11px;color:#b0b0b0;flex:1;white-space:pre-wrap;word-break:break-all;max-height:60px;overflow-y:auto;">${this.escapeHtml(this.formatBody(log.responseBody))}</code>
           </div>
         ` : ''}
       </div>
     `;
   }
 
-  getStatusClass(statusCode) {
-    if (statusCode >= 200 && statusCode < 300) return 'status-success';
-    if (statusCode >= 400 && statusCode < 500) return 'status-warning';
-    if (statusCode >= 500) return 'status-error';
-    return '';
-  }
-
   formatBody(body) {
     if (typeof body === 'string') return body;
-    try {
-      return JSON.stringify(body, null, 2);
-    } catch {
-      return String(body);
-    }
+    try { return JSON.stringify(body, null, 2); } catch { return String(body); }
   }
 
   escapeHtml(text) {
@@ -247,24 +246,8 @@ export class MonitorConsole {
     return div.innerHTML;
   }
 
-  open() {
-    this.isOpen = true;
-    this.container.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    this.renderLogs();
-  }
-
-  close() {
-    this.isOpen = false;
-    this.container.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-
   destroy() {
-    if (this.eventSource) {
-      this.eventSource.close();
-    }
-    this.close();
+    this.disconnectSSE();
   }
 }
 

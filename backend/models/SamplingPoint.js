@@ -100,37 +100,64 @@ async function saveSamplingPoint(data) {
  * @returns {number} 十进制度数
  */
 function convertDMSToDecimal(dms) {
-  if (typeof dms === 'number') return dms;
+  // 数字直接返回
+  if (typeof dms === 'number') {
+    if (isNaN(dms) || !isFinite(dms)) throw new Error(`Invalid coordinate: ${dms}`);
+    return dms;
+  }
+
   if (typeof dms !== 'string') {
     throw new Error(`Unsupported coordinate type: ${typeof dms}`);
   }
 
-  // 已经是十进制数字字符串
+  // 清理空白
+  dms = dms.trim();
+
+  // 空字符串
+  if (dms === '') throw new Error('Empty coordinate value');
+
+  // 先尝试直接解析为数字
   const directNumber = parseFloat(dms);
   if (!isNaN(directNumber) && !/[°'\"NESW]/i.test(dms)) {
     return directNumber;
   }
 
-  // 解析 DMS 格式：113°19'31.64"E
-  const match = dms.match(/(\d+)°(\d+)'([\d.]+)"?\s*([NESW])/i);
-  if (!match) {
-    // 尝试纯数字
-    const num = parseFloat(dms);
-    if (!isNaN(num)) return num;
-    throw new Error(`Cannot parse DMS: ${dms}`);
+  // 解析 DMS 格式：113°19'31.64"E 或 113°19'E
+  const match = dms.match(/(\d+)°\s*(\d+)?'?\s*([\d.]+)?\"?\s*([NESW])/i);
+  if (match) {
+    const degrees = parseFloat(match[1]);
+    const minutes = match[2] ? parseFloat(match[2]) : 0;
+    const seconds = match[3] ? parseFloat(match[3]) : 0;
+    const direction = match[4].toUpperCase();
+
+    let decimal = degrees + minutes / 60 + seconds / 3600;
+    if (direction === 'S' || direction === 'W') {
+      decimal = -decimal;
+    }
+    return decimal;
   }
 
-  const degrees = parseFloat(match[1]);
-  const minutes = parseFloat(match[2]);
-  const seconds = parseFloat(match[3]);
-  const direction = match[4].toUpperCase();
-
-  let decimal = degrees + minutes / 60 + seconds / 3600;
-  if (direction === 'S' || direction === 'W') {
-    decimal = -decimal;
-  }
-
-  return decimal;
+  // 最后兜底：尝试纯数字
+  const fallback = parseFloat(dms.replace(/[^\d.-]/g, ''));
+  if (!isNaN(fallback)) return fallback;
+  throw new Error(`Cannot parse coordinate: ${dms}`);
 }
 
-module.exports = { SamplingPoint, findNearbyPoints, saveSamplingPoint, convertDMSToDecimal };
+/**
+ * 获取所有采样点（不分页）
+ * @returns {Promise<Array>} 采样点数组
+ */
+async function findAllPoints() {
+  return SamplingPoint.find({}).lean();
+}
+
+/**
+ * 删除采样点
+ * @param {string} pointId - 采样点ID
+ * @returns {Promise<Object>} 删除结果
+ */
+async function deleteSamplingPoint(pointId) {
+  return SamplingPoint.findOneAndDelete({ point_id: pointId });
+}
+
+module.exports = { SamplingPoint, findNearbyPoints, findAllPoints, saveSamplingPoint, deleteSamplingPoint, convertDMSToDecimal };

@@ -83,7 +83,7 @@ async function listFixedRoutes(req, res) {
  * Request Body (可选):
  * {
  *   "options": {
- *     "enable_perception": false,  // 默认关闭，加快响应
+ *     "enable_perception": true,   // 是否启用 VLM 视觉感知
  *     "enable_broadcast": true     // 是否生成播报文案
  *   }
  * }
@@ -92,7 +92,7 @@ async function generateFixedPreview(req, res) {
   try {
     const { routeId } = req.params;
     const { options = {} } = req.body || {};
-    const enablePerception = options.enable_perception === true;
+    const enablePerception = options.enable_perception !== false; // 默认启用
     const enableBroadcast = options.enable_broadcast !== false;
 
     // 1. 获取预设路线配置

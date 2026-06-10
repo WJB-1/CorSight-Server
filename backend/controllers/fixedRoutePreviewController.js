@@ -50,12 +50,15 @@ function bearingToOrientation(lat1, lng1, lat2, lng2) {
 
 /**
  * 根据坐标和场景描述推断 action
+ * 注意：固定路线中每个点都是用户选定的采样点，必须保留为关键节点。
+ * 使用 '到达' action 确保 spatialMiddleware 的关键词兜底能识别。
  */
-function inferAction(desc, walkType) {
+function inferAction(desc, walkType, isLast) {
+  if (isLast) return '到达';
   if (walkType === 4) return '通过过街天桥';
   if (desc && desc.includes('路口')) return '通过人行横道';
   if (desc && desc.includes('天桥')) return '通过过街天桥';
-  return '直行';
+  return '到达';  // 用 '到达' 而非 '直行'，确保不被 spatialMiddleware 过滤
 }
 
 /**
@@ -120,6 +123,8 @@ async function generateFixedPreview(req, res) {
     // 3. 按 pointId 顺序构造 pathData（模拟 AMap 格式）
     const steps = [];
     let totalDistance = 0;
+    let prevLat = null;
+    let prevLng = null;
 
     for (let i = 0; i < route.pointIds.length; i++) {
       const pid = route.pointIds[i];
@@ -128,26 +133,29 @@ async function generateFixedPreview(req, res) {
       const lng = point.location.coordinates[0];
       const desc = point.scene_description || '';
 
-      // 计算与上一个点的距离和方位
+      // 计算与上一个不同坐标点的距离和方位
       let stepDistance = 0;
       let orientation = '北';
       let polyline = `${lng},${lat}`;
 
-      if (i > 0) {
-        const prevPid = route.pointIds[i - 1];
-        const prevPoint = pointMap[prevPid];
-        const prevLat = prevPoint.location.coordinates[1];
-        const prevLng = prevPoint.location.coordinates[0];
-
+      if (prevLat !== null) {
         stepDistance = Math.round(haversineDistance(prevLat, prevLng, lat, lng));
         orientation = bearingToOrientation(prevLat, prevLng, lat, lng);
-        polyline = `${prevLng},${prevLat};${lng},${lat}`;
+        if (stepDistance > 0) {
+          polyline = `${prevLng},${prevLat};${lng},${lat}`;
+        }
       }
 
       totalDistance += stepDistance;
+      // 只在距离>0时更新 prev 坐标，确保连续相同坐标的点不会丢失方位信息
+      if (stepDistance > 0 || prevLat === null) {
+        prevLat = lat;
+        prevLng = lng;
+      }
 
       const walkType = route.walkTypes[pid] || 0;
-      const action = inferAction(desc, walkType);
+      const isLast = (i === route.pointIds.length - 1);
+      const action = inferAction(desc, walkType, isLast);
 
       steps.push({
         action,

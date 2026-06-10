@@ -79,6 +79,7 @@ function getUserPrompt(irData) {
             road: Array.isArray(node.road) ? '' : (node.road || ''),
             hazards: hazards,
             has_perception: !!node.perception_data,
+            visual_summary: node.visual_summary || '',
             is_destination: isLast || (typeof node.action === 'string' && node.action.includes('到达')) || node.assistant_action === '到达目的地'
         };
     });
@@ -109,6 +110,7 @@ ${nodesDescription.map(n => `
 - 动作：${n.action || '前行'}
 - 道路：${n.road || '未命名道路'}
 ${n.hazards.length > 0 ? `- 风险点：${n.hazards.join('、')}` : '- 风险点：无（请勿凭空添加）'}
+${n.visual_summary ? `- 视觉感知：${n.visual_summary}` : ''}
 ${n.is_destination ? '- 【终点节点】' : ''}
 `).join('\n')}
 

@@ -123,8 +123,10 @@ function enhanceIRWithPerception(irData) {
             if (node.perception_data && node.perception_data.analysis) {
                 const analysis = node.perception_data.analysis;
                 const additionalHazards = [];
+                let rawInsights = [];
 
-                if (analysis.parsed) {
+                // 1. 优先使用解析后的结构化数据
+                if (analysis.parsed && !analysis.parsed.parse_error) {
                     if (analysis.parsed.hazards) {
                         additionalHazards.push(...analysis.parsed.hazards);
                     }
@@ -147,13 +149,53 @@ function enhanceIRWithPerception(irData) {
                     }
                 }
 
+                // 2. 从 raw_response 文本中提取关键信息（VLM 返回 Markdown 时的兜底）
+                const rawText = analysis.raw_response || '';
+                if (rawText) {
+                    // 提取台阶数
+                    const stepMatch = rawText.match(/共\s*(\d+)\s*级台阶/);
+                    if (stepMatch) {
+                        additionalHazards.push(`共${stepMatch[1]}级台阶`);
+                        rawInsights.push(`台阶：共${stepMatch[1]}级`);
+                    }
+                    // 提取入口位置
+                    const entranceMatch = rawText.match(/入口位置[：:]\s*([^\n]+)/);
+                    if (entranceMatch) {
+                        rawInsights.push(`入口：${entranceMatch[1].trim()}`);
+                    }
+                    // 提取触觉/听觉线索
+                    const cueMatches = rawText.match(/(?:触觉线索|听觉线索|盲杖|墙面|路缘|栏杆)[^\n。]*/g);
+                    if (cueMatches) {
+                        cueMatches.forEach(c => {
+                            const cleaned = c.replace(/^[\s*-]+/, '').trim();
+                            if (cleaned.length > 5 && cleaned.length < 80) {
+                                rawInsights.push(cleaned);
+                            }
+                        });
+                    }
+                    // 检测是否有天桥/台阶/障碍物
+                    if (/天桥|overpass|过街天桥/.test(rawText)) {
+                        if (!additionalHazards.some(h => h.includes('天桥'))) {
+                            additionalHazards.push('有过街天桥');
+                        }
+                    }
+                    if (/障碍物|obstacle|占道|停放/.test(rawText)) {
+                        additionalHazards.push('路面可能有障碍物');
+                    }
+                }
+
                 const existingHazards = node.hazards || [];
                 const allHazards = [...new Set([...existingHazards, ...additionalHazards])];
+
+                // 3. 合并 visual_summary：结构化 + raw 文本洞察
+                const structuredSummary = extractVisualSummary(analysis);
+                const rawSummary = rawInsights.length > 0 ? rawInsights.join('；') : null;
 
                 return {
                     ...node,
                     hazards: allHazards,
-                    visual_summary: extractVisualSummary(analysis)
+                    visual_summary: structuredSummary || rawSummary,
+                    visual_raw_summary: rawSummary  // 用于 prompt 中的额外信息
                 };
             }
 

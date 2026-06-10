@@ -399,10 +399,18 @@ async function loadImageAsBase64(imagePath) {
             return { base64, mimeType };
         }
 
-        // 本地文件路径处理（原有逻辑）
-        const fullPath = path.isAbsolute(imagePath)
-            ? imagePath
-            : path.join(process.cwd(), '..', '..', imagePath);
+        // 本地文件路径处理
+        // 数据库存的路径如 "/images/xxx.jpg"，需要解析为 backend/public/images/xxx.jpg
+        let fullPath;
+        if (path.isAbsolute(imagePath) && !imagePath.startsWith('/images/')) {
+            // 真正的绝对路径（非 /images/ 开头）
+            fullPath = imagePath;
+        } else {
+            // 相对路径或 /images/ 开头 → 解析到 public 目录
+            const publicDir = path.join(process.cwd(), 'public');
+            const relativePath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+            fullPath = path.join(publicDir, relativePath);
+        }
 
         const buffer = await fs.readFile(fullPath);
         const ext = path.extname(fullPath).toLowerCase();

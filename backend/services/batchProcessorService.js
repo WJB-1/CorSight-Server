@@ -127,8 +127,6 @@ async function processBatch(batchId) {
         let prompt = '';
         try {
           prompt = promptLoader.load(sceneType, {
-            point_id: session.point_id,
-            bearing: bearingKey,
             osm_context: JSON.stringify(img.scene_context || {}),
           });
         } catch (err) {

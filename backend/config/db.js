@@ -1,49 +1,39 @@
+/**
+ * MongoDB 连接模块（唯一）
+ *
+ * - 连接失败时 throw 而非 process.exit，让调用方决定如何处理
+ */
+
 const mongoose = require('mongoose');
 const config = require('./envConfig');
 
-/**
- * 连接 MongoDB 数据库
- * @returns {Promise<void>}
- */
 async function connectDB() {
+  const uri = config.database.MONGODB_URI;
+
   try {
-    const uri = config.database.MONGODB_URI;
+    await mongoose.connect(uri);
+    console.log(`[DB] MongoDB connected: ${uri}`);
 
-    await mongoose.connect(uri, {
-      // Mongoose 8.x 不需要显式传递这些选项，使用默认值即可
-    });
-
-    console.log('✅ MongoDB connected successfully');
-
-    // 监听连接事件
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
+      console.error('[DB] MongoDB connection error:', err);
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️ MongoDB disconnected');
+      console.warn('[DB] MongoDB disconnected');
     });
-
   } catch (error) {
-    console.error('❌ Failed to connect to MongoDB:', error.message);
-    process.exit(1);
+    console.error('[DB] Failed to connect to MongoDB:', error.message);
+    throw error; // 交给 server.js 处理，不自行 process.exit
   }
 }
 
-/**
- * 断开 MongoDB 连接
- * @returns {Promise<void>}
- */
 async function disconnectDB() {
   try {
     await mongoose.connection.close();
-    console.log('📴 MongoDB connection closed');
+    console.log('[DB] MongoDB connection closed');
   } catch (error) {
-    console.error('❌ Error closing MongoDB connection:', error.message);
+    console.error('[DB] Error closing MongoDB connection:', error.message);
   }
 }
 
-module.exports = {
-  connectDB,
-  disconnectDB
-};
+module.exports = { connectDB, disconnectDB };

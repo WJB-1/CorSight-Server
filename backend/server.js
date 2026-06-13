@@ -35,10 +35,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 const uploadRoutes = require('./routes/uploadRoutes');
 const dataRoutes = require('./routes/dataRoutes');
 const batchRoutes = require('./routes/batchRoutes');
+const navigationRoutes = require('./routes/navigationRoutes');
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/batch', batchRoutes);
+app.use('/api/navigation', navigationRoutes);
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {

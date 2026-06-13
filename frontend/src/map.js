@@ -23,18 +23,9 @@ export function initMap(container, opts = {}) {
 
   map = new maplibregl.Map({
     container,
-    style: {
-      version: 8,
-      sources: {
-        osm: {
-          type: 'raster',
-          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          tileSize: 256,
-          attribution: '&copy; OpenStreetMap',
-        },
-      },
-      layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-    },
+    // OpenFreeMap 矢量瓦片（完全免费开源，基于 OSM 数据，无需 key）
+    // 后续可替换为自建的广州市矢量瓦片（planetiler 生成的 .pmtiles）
+    style: 'https://tiles.openfreemap.org/planet/liberty',
     center: [113.33, 23.14], // 广州
     zoom: 14,
   });

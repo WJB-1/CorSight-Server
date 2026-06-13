@@ -1,26 +1,77 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CorSight Console</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <link rel="stylesheet" href="./src/style.css">
 </head>
-
 <body>
-  <div id="app"></div>
-  <script>
-    // 支持通过 URL 参数或 localStorage 设置后端地址
-    // 例如: ?api_base=https://xxx.ngrok-free.app
-    const params = new URLSearchParams(location.search);
-    const apiBase = params.get('api_base') || localStorage.getItem('API_BASE_URL');
-    if (apiBase) {
-      window.API_BASE_URL = apiBase.replace(/\/$/, '');
-      localStorage.setItem('API_BASE_URL', window.API_BASE_URL);
-    }
-  </script>
+  <!-- 顶部导航 -->
+  <nav id="topbar">
+    <span class="logo">CorSight</span>
+    <div class="nav-links">
+      <a href="#" data-page="map" class="active">地图</a>
+      <a href="#" data-page="console">控制台</a>
+    </div>
+  </nav>
+
+  <!-- 页面容器 -->
+  <main id="app">
+    <!-- 地图页面 -->
+    <div id="page-map" class="page active">
+      <div id="map"></div>
+      <!-- 左侧面板：节点信息 -->
+      <div id="panel-left" class="panel hidden">
+        <div class="panel-header">
+          <h3 id="panel-title">采样点详情</h3>
+          <button id="panel-close" class="btn-close">&times;</button>
+        </div>
+        <div id="panel-body"></div>
+      </div>
+      <!-- 右下角：路线规划 -->
+      <div id="route-box">
+        <h4>路线规划</h4>
+        <div id="route-picks">
+          <div class="route-pick">
+            <span class="label">起点</span>
+            <span id="route-origin" class="value">点击地图选择</span>
+          </div>
+          <div class="route-pick">
+            <span class="label">终点</span>
+            <span id="route-dest" class="value">点击地图选择</span>
+          </div>
+        </div>
+        <div class="route-options">
+          <label><input type="checkbox" id="opt-preview" checked> 行前预览</label>
+          <label><input type="checkbox" id="opt-sse" checked> SSE 实时</label>
+          <select id="opt-engine">
+            <option value="amap">高德</option>
+            <option value="graphhopper">GraphHopper</option>
+          </select>
+        </div>
+        <button id="btn-route" class="btn-primary" disabled>开始规划</button>
+        <div id="route-status"></div>
+      </div>
+      <!-- SSE 进度条 -->
+      <div id="sse-progress" class="hidden">
+        <div id="sse-bar"></div>
+        <span id="sse-text"></span>
+      </div>
+    </div>
+
+    <!-- 控制台页面 -->
+    <div id="page-console" class="page">
+      <div id="console-header">
+        <h3>实时日志</h3>
+        <button id="btn-console-clear" class="btn-small">清空</button>
+      </div>
+      <div id="console-body"></div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script type="module" src="./src/main.js"></script>
 </body>
-
 </html>

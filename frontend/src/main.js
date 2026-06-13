@@ -1,90 +1,90 @@
 /**
- * CorSight Console - 主入口
- * Admin Dashboard 路由与初始化
+ * CorSight Console — 主入口
+ *
+ * 两个页面：
+ * 1. 地图页面：街景节点可视化 + 路线规划测试
+ * 2. 控制台页面：实时请求日志
  */
 
-import { AdminLayout } from './layout/AdminLayout.js';
-import { DashboardPage } from './pages/DashboardPage.js';
-import { StreetViewPage } from './pages/StreetViewPage.js';
-import { AccountPage } from './pages/AccountPage.js';
-import { SettingsPage } from './pages/SettingsPage.js';
-import { MonitorPage } from './pages/MonitorPage.js';
-import { MapDebugPage } from './pages/MapDebugPage.js';
+import { api } from './api.js';
+import { initMap, renderPoints } from './map.js';
+import { initPanel, openPanel, closePanel } from './panel.js';
+import { initRoutePlanner, onMapClick } from './routePlanner.js';
+import { initConsole, installFetchLogger, addTextLog } from './console.js';
 
-// 页面组件映射
-const PAGES = {
-  dashboard: DashboardPage,
-  streetview: StreetViewPage,
-  accounts: AccountPage,
-  settings: SettingsPage,
-  monitor: MonitorPage,
-  map: MapDebugPage,
-};
+// ── 页面切换 ─────────────────────────────────────
 
-// 当前页面实例
-let currentPageInstance = null;
+const navLinks = document.querySelectorAll('.nav-links a');
+const pages = document.querySelectorAll('.page');
 
-/**
- * 获取当前路由
- */
-function getRoute() {
-  const hash = window.location.hash.replace('#/', '') || 'dashboard';
-  return PAGES[hash] ? hash : 'dashboard';
-}
+navLinks.forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = link.dataset.page;
+    navLinks.forEach((l) => l.classList.remove('active'));
+    link.classList.add('active');
+    pages.forEach((p) => p.classList.toggle('active', p.id === `page-${target}`));
+  });
+});
 
-/**
- * 切换页面
- */
-function navigateTo(pageId) {
-  // 销毁旧页面
-  if (currentPageInstance && currentPageInstance.destroy) {
-    currentPageInstance.destroy();
-  }
-  currentPageInstance = null;
+// ── 初始化 ───────────────────────────────────────
 
-  // 清空内容区
-  const content = document.getElementById('admin-content');
-  content.innerHTML = '';
+async function init() {
+  console.log('CorSight Console starting...');
 
-  // 创建新页面
-  const PageClass = PAGES[pageId];
-  if (PageClass) {
-    currentPageInstance = new PageClass('admin-content');
-  }
+  // 1. 安装 fetch 日志拦截
+  installFetchLogger();
+  initConsole();
 
-  // 更新 URL
-  window.location.hash = `#/${pageId}`;
-}
-
-/**
- * 初始化
- */
-function init() {
-  console.log('🚀 CorSight Console 初始化...');
-
-  const initialPage = getRoute();
-
-  // 初始化布局
-  const layout = new AdminLayout('app', {
-    activePage: initialPage,
-    onNavigate: (pageId) => {
-      navigateTo(pageId);
-    },
+  // 2. 初始化地图
+  initMap('map', {
+    onPointClick: (pointData) => openPanel(pointData),
+    onMapClick: (lngLat) => onMapClick(lngLat),
   });
 
-  // 加载初始页面
-  navigateTo(initialPage);
-
-  // 监听路由变化
-  window.addEventListener('hashchange', () => {
-    const pageId = getRoute();
-    layout.sidebar.setActive(pageId);
-    layout.header.updateTitle(pageId);
-    navigateTo(pageId);
+  // 3. 初始化面板和路线规划
+  initPanel({
+    onImagePreview: showImageModal,
   });
+  initRoutePlanner();
 
-  console.log('✅ CorSight Console 就绪');
+  // 4. 加载采样点数据
+  await loadPoints();
+
+  addTextLog('CorSight Console 就绪', 'success');
 }
 
-// 启动
+// ── 加载采样点 ───────────────────────────────────
+
+async function loadPoints() {
+  try {
+    const result = await api.points();
+    if (result.success && result.data) {
+      renderPoints(result.data);
+      addTextLog(`加载 ${result.data.length} 个采样点`, 'success');
+    }
+  } catch (err) {
+    addTextLog(`加载采样点失败: ${err.message}`, 'error');
+  }
+}
+
+// ── 图片预览弹窗 ────────────────────────────────
+
+function showImageModal(src) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <button class="close-modal">&times;</button>
+    <img src="${src}" alt="街景预览">
+  `;
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target.classList.contains('close-modal')) {
+      overlay.remove();
+    }
+  });
+  document.body.appendChild(overlay);
+}
+
+// ── 启动 ─────────────────────────────────────────
+
 init();

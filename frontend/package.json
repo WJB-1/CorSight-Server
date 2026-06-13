@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "leaflet": "^1.9.4"
+    "maplibre-gl": "^4.0.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"

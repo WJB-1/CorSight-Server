@@ -8,16 +8,15 @@ export default defineConfig({
         target: 'http://localhost:5741',
         changeOrigin: true,
         secure: false,
-        ws: true
       },
       '/images': {
         target: 'http://localhost:5741',
-        changeOrigin: true
-      }
-    }
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
-  }
+    sourcemap: true,
+  },
 });

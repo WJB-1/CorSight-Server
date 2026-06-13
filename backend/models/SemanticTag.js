@@ -1,13 +1,33 @@
 /**
- * 永久语义标签存储（VLM 分析结果 + OSM 匹配状态）
+ * 永久语义标签存储
+ *
+ * 两种标签用途：
+ * 1. images[] — 每张图片的独立分析结果，含 bearing+fov 扇区信息
+ *    → 行前预览 RAG 检索时，按行进方向匹配前方扇区的标签
+ * 2. merged_osm_tags + merged_description — 多图融合后的合并标签
+ *    → 注入 OSM 时使用（一条 way 一套标签）
  *
  * status 状态机：
- *   pending → patched   （已注入 OSM）
- *   pending → failed    （匹配或注入失败）
- *   failed  → pending   （手动重试）
+ *   pending → patched（已注入 OSM）
+ *   pending → failed （匹配或注入失败）
+ *   failed  → pending（手动重试）
  */
 
 const mongoose = require('mongoose');
+
+const imageAnalysisSchema = new mongoose.Schema(
+  {
+    bearing: { type: Number, required: true },
+    fov: { type: Number, default: 90 },
+    path: { type: String, required: true },
+    scene_type: { type: String, default: null },
+    agent_name: { type: String, default: null },
+    osm_tags: { type: mongoose.Schema.Types.Mixed, default: {} },
+    description: { type: String, default: '' },
+    confidence: { type: Number, default: null },
+  },
+  { _id: false }
+);
 
 const semanticTagSchema = new mongoose.Schema({
   point_id: { type: String, required: true, unique: true, index: true },
@@ -15,11 +35,16 @@ const semanticTagSchema = new mongoose.Schema({
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], required: true }, // [lng, lat]
   },
-  tags: { type: mongoose.Schema.Types.Mixed, default: {} },
-  images: { type: [String], default: [] },
   scene_description: { type: String, default: '' },
 
-  // ── OSM 匹配信息（由 Python 脚本填充） ─────────
+  // ── 每张图片的独立分析结果（RAG 按方位检索用） ──
+  images: { type: [imageAnalysisSchema], default: [] },
+
+  // ── 融合后的合并标签（注入 OSM 用） ─────────────
+  merged_osm_tags: { type: mongoose.Schema.Types.Mixed, default: {} },
+  merged_description: { type: String, default: '' },
+
+  // ── OSM 匹配信息（由 Python 脚本填充） ──────────
   matched_osm_id: { type: Number, default: null },
   matched_osm_type: { type: String, enum: ['way', 'node', null], default: null },
   match_distance_m: { type: Number, default: null },
@@ -31,7 +56,7 @@ const semanticTagSchema = new mongoose.Schema({
     default: 'pending',
     index: true,
   },
-  error: { type: String, default: null }, // 失败原因
+  error: { type: String, default: null },
 
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
@@ -40,12 +65,11 @@ const semanticTagSchema = new mongoose.Schema({
 // 2dsphere 空间索引
 semanticTagSchema.index({ location: '2dsphere' });
 
-// 便捷方法：获取待注入的标签
+// 便捷方法
 semanticTagSchema.statics.findPending = function () {
   return this.find({ status: 'pending' }).lean();
 };
 
-// 便捷方法：标记为已注入
 semanticTagSchema.statics.markPatched = async function (pointId, osmInfo) {
   return this.findOneAndUpdate(
     { point_id: pointId },
@@ -59,7 +83,6 @@ semanticTagSchema.statics.markPatched = async function (pointId, osmInfo) {
   );
 };
 
-// 便捷方法：标记失败
 semanticTagSchema.statics.markFailed = async function (pointId, errorMsg) {
   return this.findOneAndUpdate(
     { point_id: pointId },

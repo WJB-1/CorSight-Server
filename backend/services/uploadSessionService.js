@@ -37,13 +37,17 @@ async function createSession(metadata) {
     throw err;
   }
 
-  // 3. 构建 images map：bearing → { description, uploaded:false, path:null }
+  // 3. 构建 images map：bearing → { fov, description, uploaded:false, path:null, ... }
   const imagesMap = {};
   for (const img of images) {
     imagesMap[String(img.bearing)] = {
+      fov: img.fov || 90,
       description: img.description || '',
       uploaded: false,
       path: null,
+      scene_type: null,
+      scene_context: null,
+      status: 'pending',
     };
   }
 

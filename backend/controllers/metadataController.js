@@ -7,7 +7,7 @@ const uploadSessionService = require('../services/uploadSessionService');
 
 /**
  * 创建上传 session
- * @param {object} req.body - { point_id, location:{lat,lng}, scene_description?, images:[{bearing,description?}] }
+ * @param {object} req.body - { point_id, location:{lat,lng}, scene_description?, images:[{bearing,fov?,description?}] }
  */
 async function create(req, res) {
   try {
@@ -24,13 +24,21 @@ async function create(req, res) {
       return res.status(400).json({ success: false, error: 'missing_images', message: 'images 数组不能为空' });
     }
 
-    // 校验每个 bearing
+    // 校验每个图片元数据
     for (const img of images) {
       if (typeof img.bearing !== 'number' || img.bearing < 0 || img.bearing > 360) {
         return res.status(400).json({
           success: false,
           error: 'invalid_bearing',
           message: `bearing 必须为 0~360 的数字，收到: ${img.bearing}`,
+        });
+      }
+      // fov 可选，默认 90°；如提供则校验范围
+      if (img.fov !== undefined && (typeof img.fov !== 'number' || img.fov <= 0 || img.fov > 180)) {
+        return res.status(400).json({
+          success: false,
+          error: 'invalid_fov',
+          message: `fov 必须为 0~180 的数字，收到: ${img.fov}`,
         });
       }
     }

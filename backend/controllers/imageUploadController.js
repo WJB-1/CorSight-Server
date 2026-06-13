@@ -6,7 +6,7 @@
 
 const uploadSessionService = require('../services/uploadSessionService');
 const imageStorageService = require('../services/imageStorageService');
-const semanticProcessingService = require('../services/semanticProcessingService');
+const batchProcessorService = require('../services/batchProcessorService');
 
 /**
  * 上传单张图片
@@ -71,10 +71,12 @@ async function upload(req, res) {
       return res.status(404).json({ success: false, error: 'invalid_session', message: 'session 更新失败' });
     }
 
-    // 如果全部到齐，异步触发语义处理
+    // 如果全部到齐，检查是否触发批量处理（不直接调 VLM）
     if (progress.is_complete) {
       setImmediate(() => {
-        semanticProcessingService.processCompleteUpload(upload_session_id);
+        batchProcessorService.checkAndTriggerBatch(upload_session_id).catch((err) => {
+          console.error('[ImageUploadController] Batch trigger error:', err);
+        });
       });
     }
 

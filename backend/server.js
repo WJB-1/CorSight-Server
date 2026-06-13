@@ -33,8 +33,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── 3. 路由挂载 ───────────────────────────────────
 const uploadRoutes = require('./routes/uploadRoutes');
+const dataRoutes = require('./routes/dataRoutes');
 
 app.use('/api/upload', uploadRoutes);
+app.use('/api/data', dataRoutes);
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {

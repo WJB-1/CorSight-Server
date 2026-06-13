@@ -49,6 +49,26 @@ const graphhopperConfig = {
   GRAPHHOPPER_URL: getEnv('GRAPHHOPPER_URL', 'http://localhost:8989'),
 };
 
+// ── OSM 数据与 osmium ─────────────────────────────
+const osmConfig = {
+  /** osmium.exe 绝对路径 */
+  OSMIUM_PATH: getEnv('OSMIUM_PATH', 'D:\\project_file\\CorSight_Navigation\\osmium-tool-1.19.0\\build2\\src\\osmium.exe'),
+  /** osm_data 工作目录 */
+  OSM_DATA_DIR: getEnv('OSM_DATA_DIR', 'D:\\project_file\\CorSight_Navigation\\CorSight_v1.0\\osm_data'),
+  /** 原始底图 PBF（只读） */
+  OSM_BASE_PBF: getEnv('OSM_BASE_PBF', 'guangdong-260611.osm.pbf'),
+  /** 工作区 OSM 文件名 */
+  OSM_WORKSPACE: getEnv('OSM_WORKSPACE', 'workspace.osm'),
+  /** 最终供 GraphHopper 使用的 PBF */
+  OSM_WORKSPACE_PBF: getEnv('OSM_WORKSPACE_PBF', 'workspace.pbf'),
+  /** GraphHopper JAR 路径 */
+  GRAPHHOPPER_JAR: getEnv('GRAPHHOPPER_JAR', 'D:\\project_file\\CorSight_Navigation\\CorSight_v1.0\\graphhopper\\graphhopper-web-10.0.jar'),
+  /** GraphHopper 配置文件 */
+  GRAPHHOPPER_CONFIG: getEnv('GRAPHHOPPER_CONFIG', 'D:\\project_file\\CorSight_Navigation\\CorSight_v1.0\\graphhopper\\config.yml'),
+  /** 累积多少个 pending 标签后自动触发注入（0=禁用自动触发） */
+  AUTO_INJECT_THRESHOLD: getEnvInt('AUTO_INJECT_THRESHOLD', 20),
+};
+
 // ── LLM API Keys ─────────────────────────────────
 const llmConfig = {
   GEMINI_API_KEY: getEnv('GEMINI_API_KEY', ''),
@@ -73,6 +93,7 @@ const config = {
   database: dbConfig,
   amap: amapConfig,
   graphhopper: graphhopperConfig,
+  osm: osmConfig,
   llm: llmConfig,
   proxy: proxyConfig,
   getEnv,

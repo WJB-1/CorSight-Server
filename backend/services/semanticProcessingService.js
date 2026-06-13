@@ -1,15 +1,33 @@
 /**
  * 异步语义处理 Worker
- * - 当所有图片上传完成后触发
- * - 当前为占位实现（VLM 分析待接入）
- * - 写入 SemanticTag 永久存储
+ *
+ * 职责：
+ * 1. 图片上传完成 → 收集图片路径 → 预留 VLM 分析占位 → 写入 SemanticTag
+ * 2. 累积标签达到阈值 → 触发 OSM 注入 + GraphHopper 重建
+ *
+ * 当前状态：VLM 分析为占位（tags 为空），数据通道已完整。
  */
 
 const UploadSession = require('../models/UploadSession');
 const SemanticTag = require('../models/SemanticTag');
+const config = require('../config/envConfig');
+
+// 延迟加载，避免循环依赖（这两个 service 在注入阶段才需要）
+let osmPatchService = null;
+let graphHopperService = null;
+
+function getOsmPatchService() {
+  if (!osmPatchService) osmPatchService = require('./osmPatchService');
+  return osmPatchService;
+}
+
+function getGraphHopperService() {
+  if (!graphHopperService) graphHopperService = require('./graphHopperService');
+  return graphHopperService;
+}
 
 /**
- * 处理已完成上传的 session（异步调用，不阻塞请求）
+ * 处理已完成上传的 session
  * @param {string} sessionId
  */
 async function processCompleteUpload(sessionId) {
@@ -30,18 +48,23 @@ async function processCompleteUpload(sessionId) {
 
     // 3. 收集已上传的图片路径
     const imagePaths = [];
-    for (const [, img] of session.images) {
+    const bearingDescriptions = {};
+    for (const [bearing, img] of session.images) {
       if (img.uploaded && img.path) {
         imagePaths.push(img.path);
+        if (img.description) {
+          bearingDescriptions[bearing] = img.description;
+        }
       }
     }
 
-    // 4. 【占位】VLM 分析 — 后续接入 LLM
-    // const vlmResults = await vlmService.analyze(session.point_id, imagePaths, session.location);
-    const tags = {}; // 占位空标签
+    // 4. 【占位】VLM 分析
+    // TODO: 接入 LLM 视觉分析
+    // const vlmResults = await vlmService.analyze(session.point_id, imagePaths, session.location, bearingDescriptions);
+    const tags = {}; // VLM 占位：待接入后替换
 
     console.log(
-      `[SemanticWorker] VLM analysis placeholder — ${imagePaths.length} images for point ${session.point_id}`
+      `[SemanticWorker] VLM placeholder — ${imagePaths.length} images for ${session.point_id}`
     );
 
     // 5. 写入永久语义标签
@@ -53,6 +76,7 @@ async function processCompleteUpload(sessionId) {
         tags,
         images: imagePaths,
         scene_description: session.scene_description,
+        status: 'pending', // 等待 OSM 注入
         created_at: new Date(),
       },
       { upsert: true, new: true }
@@ -63,11 +87,12 @@ async function processCompleteUpload(sessionId) {
     session.updated_at = new Date();
     await session.save();
 
-    console.log(`[SemanticWorker] Session ${sessionId} done. Saved ${imagePaths.length} images to semantic_tags.`);
+    console.log(`[SemanticWorker] Session ${sessionId} done → semantic_tag saved as pending`);
+
+    // 7. 检查是否需要自动触发 OSM 注入
+    await maybeTriggerInjection();
   } catch (err) {
     console.error(`[SemanticWorker] Failed to process session ${sessionId}:`, err);
-
-    // 标记失败
     try {
       await UploadSession.findOneAndUpdate(
         { session_id: sessionId },
@@ -79,4 +104,63 @@ async function processCompleteUpload(sessionId) {
   }
 }
 
-module.exports = { processCompleteUpload };
+/**
+ * 检查 pending 标签数量，达到阈值则自动触发注入
+ */
+async function maybeTriggerInjection() {
+  const threshold = config.osm.AUTO_INJECT_THRESHOLD;
+  if (threshold <= 0) return; // 自动注入已禁用
+
+  const pendingCount = await SemanticTag.countDocuments({ status: 'pending' });
+  console.log(`[SemanticWorker] Pending tags: ${pendingCount}/${threshold}`);
+
+  if (pendingCount >= threshold) {
+    console.log(`[SemanticWorker] Threshold reached, triggering OSM injection...`);
+    setImmediate(() => runInjectionPipeline().catch(console.error));
+  }
+}
+
+/**
+ * 手动触发注入 + 重建流程
+ * @param {object} options
+ * @param {string[]} [options.pointIds] — 指定注入的 point_id 列表
+ * @param {boolean} [options.skipRebuild=false] — 跳过 GraphHopper 重建
+ * @returns {object} { injection, rebuild }
+ */
+async function runInjectionPipeline(options = {}) {
+  const patchService = getOsmPatchService();
+  const ghService = getGraphHopperService();
+
+  console.log(`[Pipeline] === Injection pipeline started ===`);
+
+  // Step 1-5: OSM 补丁生成 + 应用 + PBF 生成
+  const injectionResult = await patchService.runInjection(options);
+  console.log(`[Pipeline] Injection result:`, injectionResult);
+
+  // Step 6: GraphHopper 重建（如果注入了实际内容且未跳过）
+  let rebuildResult = { skipped: true };
+  if (injectionResult.patched > 0 && !options.skipRebuild) {
+    console.log(`[Pipeline] Triggering GraphHopper rebuild...`);
+    try {
+      const pbfPath = require('path').join(
+        config.osm.OSM_DATA_DIR,
+        config.osm.OSM_WORKSPACE_PBF
+      );
+      await ghService.rebuild(pbfPath);
+      rebuildResult = { success: true, url: ghService.getActiveUrl() };
+      console.log(`[Pipeline] GraphHopper rebuild complete`);
+    } catch (err) {
+      rebuildResult = { success: false, error: err.message };
+      console.error(`[Pipeline] GraphHopper rebuild failed:`, err.message);
+    }
+  }
+
+  console.log(`[Pipeline] === Injection pipeline finished ===`);
+  return { injection: injectionResult, rebuild: rebuildResult };
+}
+
+module.exports = {
+  processCompleteUpload,
+  runInjectionPipeline,
+  maybeTriggerInjection,
+};

@@ -1,11 +1,16 @@
 /**
- * 永久语义标签存储
+ * 永久语义标签存储（VLM 分析结果）
  *
- * 两种标签用途：
+ * 存储的内容：
  * 1. images[] — 每张图片的独立分析结果，含 bearing+fov 扇区信息
- *    → 行前预览 RAG 检索时，按行进方向匹配前方扇区的标签
- * 2. merged_osm_tags + merged_description — 多图融合后的合并标签
- *    → 注入 OSM 时使用（一条 way 一套标签）
+ *    → 行前预览 RAG 检索时，按行进方向匹配前方扇区的标签和描述
+ * 2. merged_osm_tags — 多图融合后的结构化标签
+ *    → 注入 OSM（key=value 格式，如 tactile_paving=yes）
+ * 3. merged_description — 多图融合后的自然语言描述
+ *    → 路线预览 RAG 时作为 LLM 上下文（不是注入 OSM 用的）
+ *
+ * 注入 OSM 的只有 merged_osm_tags（结构化标签），
+ * merged_description 存在 MongoDB 里供路线预览时检索使用。
  *
  * status 状态机：
  *   pending → patched（已注入 OSM）

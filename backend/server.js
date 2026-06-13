@@ -31,10 +31,10 @@ app.use(express.urlencoded({ extended: true }));
 // 静态文件（上传的图片等）
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── 3. 路由挂载点 ─────────────────────────────────
-// 示例：app.use('/api/navigation', require('./routes/navigationRoutes'));
-// 示例：app.use('/api/upload',      require('./routes/uploadRoutes'));
-// 示例：app.use('/api/config',      require('./routes/configRoutes'));
+// ── 3. 路由挂载 ───────────────────────────────────
+const uploadRoutes = require('./routes/uploadRoutes');
+
+app.use('/api/upload', uploadRoutes);
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {
@@ -71,6 +71,10 @@ async function startServer() {
 
     // 连接数据库
     await connectDB();
+
+    // 确保上传目录存在
+    const imageStorageService = require('./services/imageStorageService');
+    imageStorageService.ensureUploadDir();
 
     // 启动 HTTP 服务
     const server = app.listen(PORT, () => {

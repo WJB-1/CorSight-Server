@@ -71,7 +71,7 @@ async function generateOscPatch(pointIds) {
   }
 
   console.log(`[OsmPatch] Generating OSC patch for ${pointIds.length} points...`);
-  const { stdout, stderr } = await execFileAsync('python', args, { timeout: 120000 });
+  const { stdout, stderr } = await execFileAsync(osmConfig.PYTHON_PATH, args, { timeout: 120000 });
 
   if (stderr) {
     console.warn(`[OsmPatch] Python stderr: ${stderr}`);

@@ -67,6 +67,8 @@ const osmConfig = {
   GRAPHHOPPER_CONFIG: getEnv('GRAPHHOPPER_CONFIG', 'D:\\project_file\\CorSight_Navigation\\CorSight_v1.0\\graphhopper\\config.yml'),
   /** 累积多少个 pending 标签后自动触发注入（0=禁用自动触发） */
   AUTO_INJECT_THRESHOLD: getEnvInt('AUTO_INJECT_THRESHOLD', 20),
+  /** Python 解释器路径（需要有 shapely/pymongo/osmium 包） */
+  PYTHON_PATH: getEnv('PYTHON_PATH', 'D:\\anaconda\\python.exe'),
 };
 
 // ── LLM API Keys ─────────────────────────────────

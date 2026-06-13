@@ -51,6 +51,12 @@ async function upload(req, res) {
       });
     }
 
+    // 幂等处理：如果该 bearing 已上传过，先删除旧文件
+    const existingEntry = session.images[bearingKey];
+    if (existingEntry && existingEntry.uploaded && existingEntry.path) {
+      imageStorageService.deleteImage(existingEntry.path);
+    }
+
     // 保存图片到磁盘
     const imageUrl = imageStorageService.saveImage(
       session.point_id,

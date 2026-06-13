@@ -10,37 +10,15 @@ export class SettingsPage {
 
   render() {
     this.container.innerHTML = `
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">⚙️ 服务器配置</span>
-        </div>
-        <div class="placeholder-box">
-          <div class="placeholder-icon">🔧</div>
-          <div class="placeholder-text">端口、数据库、缓存等配置项</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🔑 API Key 管理</span>
-        </div>
-        <div class="placeholder-box">
-          <div class="placeholder-icon">🗝️</div>
-          <div class="placeholder-text">高德地图、LLM 等 API Key 配置</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📋 日志配置</span>
-        </div>
-        <div class="placeholder-box">
-          <div class="placeholder-icon">📝</div>
-          <div class="placeholder-text">日志级别、存储策略等配置</div>
-        </div>
+      <div class="page-placeholder">
+        <div class="page-placeholder-icon">⚙️</div>
+        <div class="page-placeholder-text">系统配置</div>
+        <div class="page-placeholder-hint">待开发</div>
       </div>
     `;
   }
+
+  destroy() {}
 }
 
 export default SettingsPage;

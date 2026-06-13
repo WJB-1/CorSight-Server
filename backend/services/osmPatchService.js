@@ -21,8 +21,11 @@ const execFileAsync = promisify(execFile);
 const osmConfig = config.osm;
 
 /**
- * 确保 workspace.osm 存在
- * 如果不存在，从 base PBF 转换得到
+ * 确保城市级工作区 OSM 存在
+ * 如果不存在，从 base PBF 按 bbox 裁剪
+ *
+ * 默认裁剪广州市范围（113.1,22.9,113.6,23.4）
+ * 可通过 OSM_CITY_BBOX 环境变量自定义
  */
 async function ensureWorkspace() {
   const workspacePath = path.join(osmConfig.OSM_DATA_DIR, osmConfig.OSM_WORKSPACE);
@@ -35,9 +38,20 @@ async function ensureWorkspace() {
     throw new Error(`Base PBF not found: ${basePath}`);
   }
 
-  console.log(`[OsmPatch] Converting base PBF to OSM: ${osmConfig.OSM_BASE_PBF} → ${osmConfig.OSM_WORKSPACE}`);
-  await execFileAsync(osmConfig.OSMIUM_PATH, ['cat', basePath, '-o', workspacePath]);
-  console.log(`[OsmPatch] Workspace created: ${workspacePath}`);
+  const bbox = config.getEnv('OSM_CITY_BBOX', '113.1,22.9,113.6,23.4');
+  console.log(`[OsmPatch] Extracting city area (bbox: ${bbox}) from ${osmConfig.OSM_BASE_PBF}...`);
+  await execFileAsync(osmConfig.OSMIUM_PATH, [
+    'extract', '--bbox', bbox, '--strategy', 'complete_ways',
+    basePath, '-o', workspacePath,
+  ]);
+  console.log(`[OsmPatch] City workspace created: ${workspacePath}`);
+
+  // 同时生成 PBF
+  const pbfPath = path.join(osmConfig.OSM_DATA_DIR, osmConfig.OSM_WORKSPACE_PBF);
+  if (!fs.existsSync(pbfPath)) {
+    await execFileAsync(osmConfig.OSMIUM_PATH, ['cat', workspacePath, '-o', pbfPath]);
+    console.log(`[OsmPatch] City PBF created: ${pbfPath}`);
+  }
 
   return workspacePath;
 }

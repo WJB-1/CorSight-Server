@@ -55,12 +55,12 @@ const osmConfig = {
   OSMIUM_PATH: getEnv('OSMIUM_PATH', 'D:\\project_file\\CorSight_Navigation\\osmium-tool-1.19.0\\build2\\src\\osmium.exe'),
   /** osm_data 工作目录 */
   OSM_DATA_DIR: getEnv('OSM_DATA_DIR', 'D:\\project_file\\CorSight_Navigation\\CorSight_v1.0\\osm_data'),
-  /** 原始底图 PBF（只读） */
+  /** 省级底图 PBF（只读，用于裁剪） */
   OSM_BASE_PBF: getEnv('OSM_BASE_PBF', 'guangdong-260611.osm.pbf'),
-  /** 工作区 OSM 文件名 */
-  OSM_WORKSPACE: getEnv('OSM_WORKSPACE', 'workspace.osm'),
-  /** 最终供 GraphHopper 使用的 PBF */
-  OSM_WORKSPACE_PBF: getEnv('OSM_WORKSPACE_PBF', 'workspace.pbf'),
+  /** 城市级工作区 OSM（日常查询用，9 秒扫描） */
+  OSM_WORKSPACE: getEnv('OSM_WORKSPACE', 'guangzhou.osm'),
+  /** 城市级工作区 PBF（供 GraphHopper / 标签注入用） */
+  OSM_WORKSPACE_PBF: getEnv('OSM_WORKSPACE_PBF', 'guangzhou.pbf'),
   /** GraphHopper JAR 路径 */
   GRAPHHOPPER_JAR: getEnv('GRAPHHOPPER_JAR', 'D:\\project_file\\CorSight_Navigation\\CorSight_v1.0\\graphhopper\\graphhopper-web-10.0.jar'),
   /** GraphHopper 配置文件 */

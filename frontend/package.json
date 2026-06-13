@@ -1,7 +1,7 @@
 {
-  "name": "nav-preview-frontend",
-  "version": "1.0.0",
-  "description": "视障语义地图导航预览前端",
+  "name": "corsight-console",
+  "version": "2.0.0",
+  "description": "CorSight 管理后台",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.6.0",
     "leaflet": "^1.9.4"
   },
   "devDependencies": {

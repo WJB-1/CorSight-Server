@@ -21,6 +21,17 @@ build/
 .vscode/
 .idea/
 
+# Uploaded images & generated data
+backend/public/images/
+backend/public/map_data.json
+
+# GraphHopper
+graphhopper/
+
+# Generated route preview output
+logs/
+*.output.json
+
 # OS
 .DS_Store
 Thumbs.db

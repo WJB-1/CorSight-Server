@@ -44,7 +44,8 @@ router.get('/tilejson', (req, res) => {
         return res.status(500).json({ error: 'Failed to read tile info' });
       }
 
-      const host = `${req.protocol}://${req.get('host')}`;
+      // 使用相对路径，让前端通过 Vite 代理或同域访问瓦片
+      // 避免 TileJSON 里硬编码后端地址导致跨域问题
       res.json({
         tilejson: '3.0.0',
         name: info.name || 'CorSight Guangzhou',
@@ -52,7 +53,7 @@ router.get('/tilejson', (req, res) => {
         version: '1.0.0',
         attribution: info.attribution || '© OpenMapTiles © OpenStreetMap contributors',
         scheme: 'xyz',
-        tiles: [`${host}/api/tiles/{z}/{x}/{y}.pbf`],
+        tiles: ['/api/tiles/{z}/{x}/{y}.pbf'],
         minzoom: info.minzoom || 0,
         maxzoom: info.maxzoom || 14,
         bounds: info.bounds || [113.1, 22.9, 113.6, 23.4],

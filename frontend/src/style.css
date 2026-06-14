@@ -131,6 +131,16 @@ html, body { height: 100%; font-family: -apple-system, 'Segoe UI', sans-serif; b
 .log-line .status.s5xx { color: #f85149; }
 .log-line .duration { color: #555; margin-left: 8px; }
 
+/* ── 日志标签 ────────────────────── */
+.tag {
+  display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px;
+  border-radius: 3px; margin-right: 6px; vertical-align: middle;
+}
+.tag-request { background: rgba(0,210,255,.15); color: #00d2ff; }
+.tag-log { background: rgba(139,148,158,.12); color: #8b949e; }
+.tag-warn { background: rgba(240,136,62,.15); color: #f0883e; }
+.tag-error { background: rgba(248,81,73,.15); color: #f85149; }
+
 /* ── 图片预览弹窗 ────────────────── */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 100;

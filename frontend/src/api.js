@@ -22,8 +22,13 @@ export const api = {
   points: () => request('GET', '/api/navigation/points'),
   tagStats: () => request('GET', '/api/data/tags/stats'),
 
-  // SSE 连接
+  // SSE 连接（路线进度）
   sse(requestId) {
     return new EventSource(`${BASE}/api/sse/stream?requestId=${requestId}`);
+  },
+
+  // SSE 连接（日志流）
+  logStream() {
+    return new EventSource(`${BASE}/api/logs/stream`);
   },
 };

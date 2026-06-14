@@ -28,6 +28,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 日志中间件（拦截 HTTP 请求，通过 SSE 推送）
+const { requestLogger } = require('./middleware/logger');
+app.use(requestLogger);
+
 // 静态文件（上传的图片等）
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -38,6 +42,7 @@ const batchRoutes = require('./routes/batchRoutes');
 const navigationRoutes = require('./routes/navigationRoutes');
 const sseRoutes = require('./routes/sseRoutes');
 const tileRoutes = require('./routes/tileRoutes');
+const logRoutes = require('./routes/logRoutes');
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/data', dataRoutes);
@@ -45,6 +50,7 @@ app.use('/api/batch', batchRoutes);
 app.use('/api/navigation', navigationRoutes);
 app.use('/api/sse', sseRoutes);
 app.use('/api/tiles', tileRoutes);
+app.use('/api/logs', logRoutes);
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {

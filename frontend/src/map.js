@@ -21,11 +21,23 @@ export function initMap(container, opts = {}) {
   onPointClick = opts.onPointClick || (() => {});
   onMapClick = opts.onMapClick || (() => {});
 
+  // 本地矢量瓦片样式（planetiler 生成的 guangzhou.mbtiles，由后端 /api/tiles 提供）
+  const tileBaseUrl = window.API_BASE_URL || '';
+  const style = {
+    version: 8,
+    sources: {
+      openmaptiles: {
+        type: 'vector',
+        url: `${tileBaseUrl}/api/tiles/tilejson`,
+      },
+    },
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    layers: getDefaultLayers(),
+  };
+
   map = new maplibregl.Map({
     container,
-    // OpenFreeMap 矢量瓦片（完全免费开源，基于 OSM 数据，无需 key）
-    // 后续可替换为自建的广州市矢量瓦片（planetiler 生成的 .pmtiles）
-    style: 'https://tiles.openfreemap.org/planet/liberty',
+    style,
     center: [113.33, 23.14], // 广州
     zoom: 14,
   });
@@ -232,3 +244,42 @@ function computeSectorCoords(lng, lat, bearing, fov, radiusDeg) {
 }
 
 export function getMap() { return map; }
+
+/**
+ * OpenMapTiles 默认样式图层（暗色主题）
+ */
+function getDefaultLayers() {
+  return [
+    // 背景
+    { id: 'background', type: 'background', paint: { 'background-color': '#1a1a2e' } },
+    // 水系
+    { id: 'water', type: 'fill', source: 'openmaptiles', 'source-layer': 'water',
+      paint: { 'fill-color': '#0f3460' } },
+    // 建筑
+    { id: 'building', type: 'fill', source: 'openmaptiles', 'source-layer': 'building',
+      paint: { 'fill-color': '#16213e', 'fill-opacity': 0.7 } },
+    // 土地利用
+    { id: 'landuse', type: 'fill', source: 'openmaptiles', 'source-layer': 'landuse',
+      paint: { 'fill-color': '#1a2744', 'fill-opacity': 0.5 } },
+    // 道路（次级）
+    { id: 'road-secondary', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation',
+      filter: ['all', ['in', 'class', 'secondary', 'tertiary']],
+      paint: { 'line-color': '#2d3748', 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 6] } },
+    // 道路（主干道）
+    { id: 'road-primary', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation',
+      filter: ['all', ['in', 'class', 'motorway', 'trunk', 'primary']],
+      paint: { 'line-color': '#4a5568', 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 16, 10] } },
+    // 人行道/步行道
+    { id: 'road-path', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation',
+      filter: ['all', ['in', 'class', 'path', 'pedestrian', 'track']],
+      paint: { 'line-color': '#2d3748', 'line-width': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 16, 3], 'line-dasharray': [2, 2] } },
+    // 道路标注
+    { id: 'road-label', type: 'symbol', source: 'openmaptiles', 'source-layer': 'transportation_name',
+      layout: { 'text-field': '{name:zh}', 'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 16, 14], 'text-font': ['Noto Sans Regular'], 'symbol-placement': 'line' },
+      paint: { 'text-color': '#8899aa', 'text-halo-color': '#1a1a2e', 'text-halo-width': 1 } },
+    // POI 标注
+    { id: 'poi-label', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi',
+      layout: { 'text-field': '{name:zh}', 'text-size': 11, 'text-font': ['Noto Sans Regular'] },
+      paint: { 'text-color': '#556677', 'text-halo-color': '#1a1a2e', 'text-halo-width': 1 } },
+  ];
+}

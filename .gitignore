@@ -32,6 +32,9 @@ graphhopper/
 logs/
 *.output.json
 
+# OSM data & tools
+osm_data/
+
 # OS
 .DS_Store
 Thumbs.db

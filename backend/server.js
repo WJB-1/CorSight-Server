@@ -37,12 +37,14 @@ const dataRoutes = require('./routes/dataRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const navigationRoutes = require('./routes/navigationRoutes');
 const sseRoutes = require('./routes/sseRoutes');
+const tileRoutes = require('./routes/tileRoutes');
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/batch', batchRoutes);
 app.use('/api/navigation', navigationRoutes);
 app.use('/api/sse', sseRoutes);
+app.use('/api/tiles', tileRoutes);
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {

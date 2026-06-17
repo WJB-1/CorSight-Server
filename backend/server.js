@@ -24,9 +24,24 @@ const app = express();
 const PORT = config.server.PORT;
 
 // ── 2. 全局中间件 ─────────────────────────────────
+app.disable('x-powered-by'); // 隐藏 Express 版本标识
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 安全响应头
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.removeHeader('X-Powered-By');
+  // 静态资源长期缓存（MapLibre JS/CSS）
+  if (req.path.match(/\.(js|css|woff2?|ttf|pbf)$/)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  } else {
+    res.setHeader('Cache-Control', 'no-cache');
+  }
+  next();
+});
 
 // 日志中间件（拦截 HTTP 请求，通过 SSE 推送）
 const { requestLogger } = require('./middleware/logger');
@@ -58,7 +73,7 @@ const sseRoutes = require('./routes/sseRoutes');
 const tileRoutes = require('./routes/tileRoutes');
 const logRoutes = require('./routes/logRoutes');
 const roadRoutes = require('./routes/roadRoutes');
-// const guideRoutes = require('./routes/guideRoutes');
+const guideRoutes = require('./routes/guideRoutes');
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/data', dataRoutes);
@@ -68,7 +83,7 @@ app.use('/api/sse', sseRoutes);
 app.use('/api/tiles', tileRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/road', roadRoutes);
-// app.use('/api/guide', guideRoutes);
+app.use('/api/guide', guideRoutes);
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {

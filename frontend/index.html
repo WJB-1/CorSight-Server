@@ -16,8 +16,13 @@
       <a href="#" data-page="console">控制台</a>
     </div>
     <div class="tile-source-toggle">
-      <label><input type="checkbox" id="toggle-tile-layer" checked> 瓦片图层</label>
-      <label style="margin-left:12px"><input type="checkbox" id="toggle-debug" > 🐛 调试</label>
+      <label for="tile-source">瓦片源：</label>
+      <select id="tile-source" aria-label="选择瓦片源">
+        <option value="segmented">分段后</option>
+        <option value="original">原始（未分段）</option>
+      </select>
+      <label style="margin-left:12px"><input type="checkbox" id="toggle-tile-layer" checked> 瓦片图层</label>
+      <label style="margin-left:8px"><input type="checkbox" id="toggle-mongo-layer" checked> MongoDB 图层</label>
     </div>
   </nav>
 

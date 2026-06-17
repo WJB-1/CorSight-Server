@@ -290,9 +290,82 @@ async function analyzeBatch(tasks) {
   return results;
 }
 
+// ── 实时导航指引分析 ───────────────────────────────
+
+/**
+ * 分析导航指引帧 — 带滚动上下文的单帧实时分析
+ *
+ * 与 analyzeImage 的区别：
+ *   1. 输入帧是摄像头 base64 而非本地文件路径
+ *   2. 预置系统提示词负责"指引者"角色
+ *   3. 返回结构化指引结果（on_track/guidance/summary）
+ *   4. 输出的 summary 字段会被下一帧作为上下文使用
+ *
+ * @param {string} frameBase64 - 摄像头帧的 data URL (data:image/jpeg;base64,...)
+ * @param {string} systemPrompt - 系统提示词（指引者角色模板）
+ * @param {string} userPrompt - 用户提示词（含宏观指令+标签+历史摘要）
+ * @param {object} [options] - 可选参数 { temperature, maxTokens }
+ * @returns {Promise<{ on_track: boolean, guidance: string, correction: string|null, summary: string }>}
+ */
+async function analyzeGuidanceFrame(frameBase64, systemPrompt, userPrompt, options = {}) {
+  // 校验输入
+  if (!frameBase64 || !frameBase64.startsWith('data:')) {
+    throw new Error('analyzeGuidanceFrame: frameBase64 必须是 data URL 格式');
+  }
+
+  const client = getClient();
+
+  try {
+    const response = await client.chat.completions.create({
+      model: options.model || MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: userPrompt },
+            { type: 'image_url', image_url: { url: frameBase64 } },
+          ],
+        },
+      ],
+      temperature: options.temperature || 0.1,
+      max_tokens: options.maxTokens || 1500,
+      response_format: { type: 'json_object' },  // 强制 JSON 输出
+    });
+
+    const text = response.choices?.[0]?.message?.content || '';
+    const parsed = parseVlmResponse(text);
+
+    if (parsed) {
+      return {
+        on_track: parsed.on_track !== false,
+        guidance: parsed.guidance || '请继续沿当前路线前进',
+        correction: parsed.correction || null,
+        summary: parsed.summary || `告知用户：${(parsed.guidance || '').slice(0, 80)}`,
+        osm_tags: parsed.osm_tags || {},
+      };
+    }
+
+    // 解析失败时的 fallback
+    console.warn('[VLM-Guidance] Failed to parse response, using fallback');
+    return {
+      on_track: true,
+      guidance: '请继续沿当前路线前进',
+      correction: null,
+      summary: '模型返回格式异常，使用默认指引。',
+      osm_tags: {},
+      _parseFailed: true,
+    };
+  } catch (err) {
+    console.error('[VLM-Guidance] API call failed:', err.message);
+    throw err;
+  }
+}
+
 module.exports = {
   analyzeImage,
   analyzeBatch,
+  analyzeGuidanceFrame,
   imageToBase64Url,
   parseVlmResponse,
 };

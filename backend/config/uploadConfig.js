@@ -1,0 +1,22 @@
+/**
+ * 上传相关配置
+ */
+
+const path = require('path');
+
+module.exports = {
+  /** 图片存储目录（相对于 backend/） */
+  UPLOAD_DIR: path.join(__dirname, '..', 'public', 'images'),
+
+  /** 图片 URL 前缀（静态文件 serve 路径） */
+  UPLOAD_URL_PREFIX: '/images',
+
+  /** 单文件大小上限 (bytes) */
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+
+  /** session 过期时间 (小时) */
+  SESSION_TTL_HOURS: 24,
+
+  /** 允许的 MIME 类型 */
+  ALLOWED_MIME_TYPES: ['image/jpeg', 'image/png'],
+};

@@ -1,19 +1,21 @@
 /**
  * 地图模块（MapLibre GL）
  *
- * 职责：地图初始化 + 业务图层（采样点、路线、扇形、调试）
- * 道路渲染由 tileRenderer.js 和 mongoRoadLayer.js 负责
- * 道路交互由 roadInteraction.js 负责
+ * 双层渲染架构：
+ * - 瓦片底图层：水系、建筑、标注（来自 guangzhou_full.mbtiles，纯装饰）
+ * - 道路图层：来自 MongoDB osm_ways（GeoJSON，按视口动态加载，唯一数据源）
+ *
+ * 交互层（roadInteraction.js）直接查询道路图层的 feature，不需要查后端。
  */
 
 import { getTileLayers } from './tileRenderer.js';
+import { api } from './api.js';
 
 let map = null;
 let pendingPoints = null;
-
 let onPointClick = null;
 let onMapClick = null;
-let pointClickJustFired = false; // 替代 defaultPrevented，防止同时触发两个点击
+let mongoRoadDebounce = null;
 
 // ── 初始化 ───────────────────────────────────────
 
@@ -22,18 +24,21 @@ export function initMap(container, opts = {}) {
   onMapClick = opts.onMapClick || (() => {});
 
   const origin = window.location.origin;
-  const params = new URLSearchParams(window.location.search);
-  const tileSource = params.get('source') || 'segmented';
-  const tileUrl = `${origin}/api/tiles/{z}/{x}/{y}.pbf?source=${tileSource}`;
 
   const style = {
     version: 8,
     sources: {
+      // 瓦片底图（装饰用，不含道路交互）
       openmaptiles: {
         type: 'vector',
-        tiles: [tileUrl],
+        tiles: [`${origin}/api/tiles/{z}/{x}/{y}.pbf`],
         minzoom: 0,
         maxzoom: 15,
+      },
+      // MongoDB 道路图层（唯一数据源，按视口动态加载）
+      'mongo-roads': {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
       },
     },
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -44,7 +49,38 @@ export function initMap(container, opts = {}) {
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
   map.on('load', () => {
-    // 业务图层
+    // ── MongoDB 道路图层（在瓦片之上） ─────────
+    map.addLayer({
+      id: 'mongo-road-line',
+      type: 'line',
+      source: 'mongo-roads',
+      paint: {
+        'line-color': [
+          'match', ['get', 'highway'],
+          'footway', '#2196f3',
+          'pedestrian', '#1565c0',
+          'steps', '#e53935',
+          'path', '#42a5f5',
+          'crossing', '#f39c12',
+          'residential', '#90a4ae',
+          'living_street', '#b0bec5',
+          /* default */ '#94a3b8',
+        ],
+        'line-width': 3,
+        'line-opacity': 0.9,
+      },
+    });
+
+    // 高亮图层（悬停用）
+    map.addSource('road-highlight', { type: 'geojson', data: emptyFC() });
+    map.addLayer({
+      id: 'road-highlight',
+      type: 'line',
+      source: 'road-highlight',
+      paint: { 'line-color': '#f39c12', 'line-width': 8, 'line-opacity': 0.8 },
+    });
+
+    // ── 业务图层 ───────────────────────────────
     addSource('route', { type: 'geojson', data: emptyFC() });
     addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#e63946', 'line-width': 5, 'line-opacity': 0.9 } });
 
@@ -65,14 +101,14 @@ export function initMap(container, opts = {}) {
       paint: { 'text-color': '#e63946', 'text-halo-color': '#fff', 'text-halo-width': 2 },
     });
 
-    // 采样点点击（用标志变量代替 defaultPrevented，MapLibre 某些版本不正确设置该属性）
+    // ── 事件 ───────────────────────────────────
+    let pointClickJustFired = false;
     map.on('click', 'points-circle', (e) => {
       pointClickJustFired = true;
       onPointClick(JSON.parse(e.features[0].properties.data));
       setTimeout(() => { pointClickJustFired = false; }, 0);
     });
 
-    // 地图点击（路线选点 + 道路查询共用）
     map.on('click', (e) => {
       if (!pointClickJustFired) onMapClick(e.lngLat);
     });
@@ -80,11 +116,37 @@ export function initMap(container, opts = {}) {
     map.on('mouseenter', 'points-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'points-circle', () => { map.getCanvas().style.cursor = ''; });
 
+    // ── MongoDB 道路按视口动态加载 ─────────────
+    loadMongoRoads();
+    map.on('moveend', () => {
+      clearTimeout(mongoRoadDebounce);
+      mongoRoadDebounce = setTimeout(loadMongoRoads, 500);
+    });
+
     // 补渲染迟到的采样点
     if (pendingPoints) { renderPoints(pendingPoints); pendingPoints = null; }
   });
 
   return map;
+}
+
+// ── MongoDB 道路加载 ─────────────────────────────
+
+async function loadMongoRoads() {
+  if (!map) return;
+  const bounds = map.getBounds();
+  try {
+    const result = await api.getRoadGeoJSON(
+      bounds.getWest(), bounds.getSouth(),
+      bounds.getEast(), bounds.getNorth(),
+      5000
+    );
+    if (result.success && result.data && map.getSource('mongo-roads')) {
+      map.getSource('mongo-roads').setData(result.data);
+    }
+  } catch (err) {
+    console.warn('[Map] Road load failed:', err.message);
+  }
 }
 
 // ── 采样点 ───────────────────────────────────────
@@ -99,7 +161,11 @@ export function renderPoints(points) {
         point_id: p.point_id,
         hasVlm: p.images?.some((i) => i.osm_tags && Object.keys(i.osm_tags).length > 0) || false,
         hasOsm: false,
-        data: JSON.stringify({ point_id: p.point_id, location: coords, images: p.images || [], merged_osm_tags: p.merged_osm_tags || {}, merged_description: p.merged_description || '', status: p.status }),
+        data: JSON.stringify({
+          point_id: p.point_id, location: coords,
+          images: p.images || [], merged_osm_tags: p.merged_osm_tags || {},
+          merged_description: p.merged_description || '', status: p.status,
+        }),
       },
     };
   });
@@ -145,6 +211,20 @@ export function renderRoute(coords, origin, dest) {
 export function clearRoute() {
   if (map?.getSource('route')) map.getSource('route').setData(emptyFC());
   if (map?.getSource('markers')) map.getSource('markers').setData(emptyFC());
+}
+
+// ── 道路高亮（供 roadInteraction 调用） ──────────
+
+export function highlightFeature(feature) {
+  if (!map?.getSource('road-highlight')) return;
+  map.getSource('road-highlight').setData({
+    type: 'FeatureCollection',
+    features: feature ? [feature] : [],
+  });
+}
+
+export function clearHighlight() {
+  highlightFeature(null);
 }
 
 // ── 调试：坐标校准对比 ───────────────────────────
@@ -202,20 +282,3 @@ function computeSectorCoords(lng, lat, bearing, fov, radiusDeg) {
 }
 
 export function getMap() { return map; }
-
-/**
- * 销毁地图实例，释放资源
- * 应在页面卸载或组件销毁时调用
- */
-export function destroyMap() {
-  if (map) {
-    map.remove();
-    map = null;
-    console.log('[Map] Map instance destroyed');
-  }
-}
-
-// 页面卸载时自动清理
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', destroyMap);
-}

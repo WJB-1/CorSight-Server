@@ -1,0 +1,11 @@
+serverAddr = "114.132.86.138"
+serverPort = 7000
+auth.method = "token"
+auth.token = "12345678"
+
+[[proxies]]
+name = "heartsight_backend"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 5741
+remotePort = 5000

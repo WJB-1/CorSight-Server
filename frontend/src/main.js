@@ -8,7 +8,6 @@ import { initPanel, openPanel } from './panel.js';
 import { initRoutePlanner, onMapClick } from './routePlanner.js';
 import { initConsole, installFetchLogger, addTextLog } from './console.js';
 import { runCoordDebug, initDebugToggle } from './debugCoord.js';
-import { initTileRenderer, toggleTileRenderer } from './tileRenderer.js';
 import { initRoadInteraction } from './roadInteraction.js';
 import { escapeAttr } from './utils.js';
 
@@ -35,7 +34,6 @@ async function init() {
   installFetchLogger();
   initConsole();
 
-  // 1. 初始化地图（包含瓦片底图 + 业务图层）
   initMap('map', {
     onPointClick: (pointData) => openPanel(pointData),
     onMapClick: (lngLat) => onMapClick(lngLat),
@@ -45,22 +43,11 @@ async function init() {
   initRoutePlanner();
   initDebugToggle();
 
-  // 2. 地图 load 完成后初始化渲染层 + 交互层
   const mapInstance = getMap();
   if (mapInstance) {
     const initAfterLoad = () => {
-      initTileRenderer();
       initRoadInteraction(mapInstance);
       addTextLog('地图就绪', 'success');
-
-      const tileToggle = document.getElementById('toggle-tile-layer');
-      if (tileToggle) {
-        tileToggle.checked = true;
-        tileToggle.addEventListener('change', () => {
-          const on = toggleTileRenderer();
-          addTextLog(`瓦片图层: ${on ? '开' : '关'}`, 'info');
-        });
-      }
     };
 
     if (mapInstance.isStyleLoaded()) {
@@ -70,9 +57,7 @@ async function init() {
     }
   }
 
-  // 3. 加载采样点
   await loadPoints();
-
   addTextLog('CorSight Console 就绪', 'success');
 }
 
@@ -98,7 +83,6 @@ function showImageModal(src) {
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `<button class="close-modal">&times;</button><img src="${escapeAttr(src)}" alt="街景预览">`;
 
-  // 点击关闭
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay || e.target.classList.contains('close-modal')) {
       overlay.remove();
@@ -106,7 +90,6 @@ function showImageModal(src) {
     }
   });
 
-  // ESC 键关闭（视障导航项目，键盘可访问性尤为重要）
   const onEsc = (e) => {
     if (e.key === 'Escape') {
       overlay.remove();

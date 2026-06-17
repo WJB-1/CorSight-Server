@@ -58,7 +58,7 @@ const sseRoutes = require('./routes/sseRoutes');
 const tileRoutes = require('./routes/tileRoutes');
 const logRoutes = require('./routes/logRoutes');
 const roadRoutes = require('./routes/roadRoutes');
-const guideRoutes = require('./routes/guideRoutes');
+// const guideRoutes = require('./routes/guideRoutes');
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/data', dataRoutes);
@@ -68,7 +68,7 @@ app.use('/api/sse', sseRoutes);
 app.use('/api/tiles', tileRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/road', roadRoutes);
-app.use('/api/guide', guideRoutes);
+// app.use('/api/guide', guideRoutes);
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {

@@ -114,31 +114,33 @@ function poll() {
   }
 }
 
-// ── GPS 启动 ─────────────────────────────────────
+// ── 模拟定位（金造村） ──────────────────────────
+
+// 模拟用户位置：从金造村中心开始，可手动移动
+const SIM_POSITION = { lat: 24.107455, lng: 112.961714, heading: 0 };
 
 export async function startGPSTrigger() {
   await loadPOIs();
 
-  if (!navigator.geolocation) {
-    console.warn('[NavTrigger] Geolocation not supported');
-    return;
-  }
-
-  watchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      currentPosition = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        heading: pos.coords.heading || 0,
-      };
-    },
-    (err) => console.warn('[NavTrigger] GPS error:', err.message),
-    { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
-  );
+  // 使用模拟位置
+  currentPosition = { ...SIM_POSITION };
+  console.log('[NavTrigger] Using simulated position:', currentPosition);
 
   // 每 3 秒检查一次
   setInterval(poll, 3000);
-  console.log('[NavTrigger] GPS tracking started');
+
+  // 键盘控制模拟移动：W/S 前后，A/D 左右
+  document.addEventListener('keydown', (e) => {
+    const step = 0.00005; // 约 5 米
+    switch (e.key.toLowerCase()) {
+      case 'w': currentPosition.lat += step; break;
+      case 's': currentPosition.lat -= step; break;
+      case 'a': currentPosition.lng -= step; break;
+      case 'd': currentPosition.lng += step; break;
+    }
+  });
+
+  console.log('[NavTrigger] Simulated tracking started (WASD to move)');
 }
 
 export function stopGPSTrigger() {

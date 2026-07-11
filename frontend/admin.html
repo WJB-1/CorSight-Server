@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CorSight Admin — 节点管理</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+
+    /* ── 顶部 ──────────────────────────── */
+    .topbar { display: flex; align-items: center; gap: 16px; height: 48px; padding: 0 20px; background: #16213e; border-bottom: 1px solid #0f3460; }
+    .topbar .logo { font-weight: 700; font-size: 18px; color: #00d2ff; }
+    .topbar .subtitle { color: #8899aa; font-size: 13px; }
+    .topbar .back { margin-left: auto; color: #8899aa; font-size: 12px; text-decoration: none; }
+    .topbar .back:hover { color: #00d2ff; }
+
+    /* ── 布局 ──────────────────────────── */
+    .layout { display: flex; height: calc(100vh - 48px); }
+
+    /* 左侧列表 */
+    .sidebar { width: 360px; min-width: 360px; background: #0f1a2e; border-right: 1px solid #0f3460; overflow-y: auto; }
+    .sidebar-header { padding: 16px; border-bottom: 1px solid #0f3460; }
+    .sidebar-header h3 { font-size: 14px; color: #00d2ff; margin-bottom: 8px; }
+    .sidebar-header .filters { display: flex; gap: 8px; }
+    .sidebar-header select { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460; border-radius: 4px; padding: 4px 8px; font-size: 12px; }
+    .node-item { padding: 12px 16px; border-bottom: 1px solid #0f3460; cursor: pointer; transition: background .15s; }
+    .node-item:hover { background: #16213e; }
+    .node-item.active { background: #1a3a5e; border-left: 3px solid #00d2ff; }
+    .node-item .node-label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .node-item .node-meta { font-size: 11px; color: #8899aa; display: flex; gap: 8px; }
+    .node-item .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+    .badge-poi { background: #1a3a5e; color: #00d2ff; }
+    .badge-path { background: #3a2e1a; color: #f39c12; }
+
+    /* 右侧表单 */
+    .main { flex: 1; padding: 24px; overflow-y: auto; }
+    .main .empty { text-align: center; color: #8899aa; padding-top: 120px; }
+    .form-section { margin-bottom: 24px; }
+    .form-section h4 { font-size: 13px; color: #00d2ff; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #0f3460; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: #8899aa; margin-bottom: 4px; }
+    .field input, .field textarea, .field select { width: 100%; background: #16213e; color: #e0e0e0; border: 1px solid #0f3460; border-radius: 4px; padding: 8px 12px; font-size: 13px; font-family: inherit; }
+    .field textarea { min-height: 80px; resize: vertical; }
+    .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: #00d2ff; }
+
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+
+    /* 子物件 / 关键节点 */
+    .sub-list { border: 1px solid #0f3460; border-radius: 4px; }
+    .sub-item { padding: 10px 12px; border-bottom: 1px solid #0f3460; background: #0f1a2e; }
+    .sub-item:last-child { border-bottom: none; }
+    .sub-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .sub-item-header span { font-size: 13px; font-weight: 600; }
+    .sub-item-header button { background: none; border: none; color: #f85149; cursor: pointer; font-size: 16px; }
+    .sub-row { display: flex; gap: 6px; margin-bottom: 6px; }
+    .sub-row input { flex: 1; background: #16213e; color: #e0e0e0; border: 1px solid #0f3460; border-radius: 3px; padding: 4px 8px; font-size: 12px; }
+    .sub-row input:focus { outline: none; border-color: #00d2ff; }
+    .btn-add-sub { background: #1a3a5e; color: #00d2ff; border: 1px solid #0f3460; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; margin-top: 8px; }
+    .btn-add-sub:hover { background: #0f3460; }
+
+    /* 按钮 */
+    .actions { display: flex; gap: 8px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #0f3460; }
+    .btn { padding: 8px 20px; border-radius: 4px; font-size: 13px; cursor: pointer; border: none; }
+    .btn-primary { background: #00d2ff; color: #000; }
+    .btn-primary:hover { background: #00b8e6; }
+    .btn-danger { background: #f85149; color: #fff; }
+    .btn-danger:hover { background: #d73a3a; }
+    .btn-save-msg { color: #2a9d8f; font-size: 13px; padding: 8px 0; display: none; }
+
+    /* 坐标只读 */
+    .coord-readonly { font-size: 12px; color: #8899aa; background: #0f1a2e; padding: 8px; border-radius: 4px; font-family: monospace; max-height: 80px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="logo">CorSight Admin</span>
+    <span class="subtitle">节点知识图谱管理</span>
+    <a href="/" class="back">← 返回地图</a>
+  </div>
+
+  <div class="layout">
+    <!-- 左侧列表 -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>全部节点</h3>
+        <div class="filters">
+          <select id="filter-type">
+            <option value="">全部类型</option>
+            <option value="poi">兴趣点 (POI)</option>
+            <option value="path">道路 (Path)</option>
+          </select>
+          <select id="filter-cat">
+            <option value="">全部分类</option>
+            <option value="heritage">文物</option>
+            <option value="residence">故居</option>
+            <option value="landmark">地标</option>
+            <option value="memorial">纪念物</option>
+            <option value="scenery">风景</option>
+            <option value="facility">设施</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+      </div>
+      <div id="node-list"></div>
+    </div>
+
+    <!-- 右侧表单 -->
+    <div class="main" id="main">
+      <div class="empty" id="empty-state">← 选择一个节点开始编辑</div>
+      <form id="edit-form" style="display:none">
+        <input type="hidden" id="f-id">
+
+        <!-- 基本信息 -->
+        <div class="form-section">
+          <h4>基本信息</h4>
+          <div class="row">
+            <div class="field">
+              <label>节点名称</label>
+              <input id="f-label" placeholder="如：革命烈士故居">
+            </div>
+            <div class="field">
+              <label>节点类型</label>
+              <select id="f-node-type">
+                <option value="poi">POI 兴趣点</option>
+                <option value="path">Path 道路</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>分类</label>
+              <select id="f-category">
+                <option value="heritage">文物</option>
+                <option value="residence">故居</option>
+                <option value="landmark">地标</option>
+                <option value="memorial">纪念物</option>
+                <option value="scenery">风景</option>
+                <option value="facility">设施</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>触发半径（米）</label>
+              <input id="f-radius" type="number" min="5" max="100" value="20">
+            </div>
+          </div>
+          <div class="field">
+            <label>描述</label>
+            <textarea id="f-description" placeholder="节点简要描述"></textarea>
+          </div>
+          <div class="field">
+            <label>几何坐标（只读）</label>
+            <div class="coord-readonly" id="f-geometry"></div>
+          </div>
+        </div>
+
+        <!-- POI：知识图谱 -->
+        <div class="form-section" id="sec-knowledge">
+          <h4>知识图谱（POI）</h4>
+          <div class="field">
+            <label>概述（用户到达时播报）</label>
+            <textarea id="f-know-summary" placeholder="如：这里是XXX烈士的故居，建于1920年..."></textarea>
+          </div>
+          <div class="field">
+            <label>历史时期</label>
+            <input id="f-know-period" placeholder="如：1920-1949">
+          </div>
+          <div class="field">
+            <label>关联人物（逗号分隔）</label>
+            <input id="f-know-people" placeholder="如：XXX烈士, XXX同志">
+          </div>
+
+          <!-- 子物件 -->
+          <h4 style="color:#8899aa;font-size:12px;margin-top:16px;margin-bottom:8px;">小物件列表（VLM 可识别的展品）</h4>
+          <div class="sub-list" id="sub-items"></div>
+          <button type="button" class="btn-add-sub" onclick="addSubItem()">+ 添加小物件</button>
+
+          <!-- 故事 -->
+          <h4 style="color:#8899aa;font-size:12px;margin-top:16px;margin-bottom:8px;">故事列表</h4>
+          <div class="sub-list" id="stories"></div>
+          <button type="button" class="btn-add-sub" onclick="addStory()">+ 添加故事</button>
+        </div>
+
+        <!-- Path：关键节点 -->
+        <div class="form-section" id="sec-waypoints" style="display:none">
+          <h4>路径关键节点</h4>
+          <div class="sub-list" id="waypoints"></div>
+          <button type="button" class="btn-add-sub" onclick="addWaypoint()">+ 添加关键节点</button>
+          <div class="row" style="margin-top:12px">
+            <div class="field">
+              <label>路面类型</label>
+              <select id="f-surface">
+                <option value="">未设置</option>
+                <option value="gravel">碎石路</option>
+                <option value="stone">石板路</option>
+                <option value="dirt">土路</option>
+                <option value="paved">铺装路</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>行走难度</label>
+              <select id="f-difficulty">
+                <option value="">未设置</option>
+                <option value="easy">容易</option>
+                <option value="medium">中等</option>
+                <option value="hard">困难</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 提示词 -->
+        <div class="form-section" id="sec-prompts">
+          <h4>讲解提示词</h4>
+          <div class="field poi-prompt">
+            <label>Welcome — 到达开场白</label>
+            <textarea id="f-p-welcome" placeholder="你是一位红色村落讲解员，用户正站在${label}前。请用亲切的口吻做30秒简要介绍。"></textarea>
+          </div>
+          <div class="field poi-prompt">
+            <label>Detail — 小物件讲解</label>
+            <textarea id="f-p-detail" placeholder="用户对${label}中的${sub_item}感兴趣。请详细讲述这个物件背后的故事..."></textarea>
+          </div>
+          <div class="field poi-prompt">
+            <label>Story — 故事讲述</label>
+            <textarea id="f-p-story" placeholder="用户想听关于${label}的故事。请生动讲述..."></textarea>
+          </div>
+          <div class="field path-prompt" style="display:none">
+            <label>Turn — 拐弯提醒</label>
+            <textarea id="f-p-turn" placeholder="前方${action_desc}，${waypoint.description}"></textarea>
+          </div>
+          <div class="field path-prompt" style="display:none">
+            <label>Arrive — 到达提醒</label>
+            <textarea id="f-p-arrive" placeholder="您已到达${label}，${next_label}在您${heading}方向"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" onclick="save()">保存</button>
+          <span class="btn-save-msg" id="save-msg">✓ 已保存</span>
+          <button type="button" class="btn btn-danger" style="margin-left:auto" onclick="deleteNode()">删除节点</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api/annotations';
+    let nodes = [];
+    let currentNode = null;
+
+    // ── 加载列表 ──────────────────────────
+    async function loadList() {
+      const nodeType = document.getElementById('filter-type').value;
+      const category = document.getElementById('filter-cat').value;
+      const params = new URLSearchParams();
+      if (nodeType) params.set('node_type', nodeType);
+      if (category) params.set('category', category);
+
+      const res = await fetch(`${API}?${params}`).then(r => r.json());
+      if (!res.success) return;
+
+      nodes = res.data.filter(n => !n.deleted);
+      renderList();
+    }
+
+    function renderList() {
+      const list = document.getElementById('node-list');
+      list.innerHTML = nodes.map(n => {
+        const badge = n.node_type === 'poi'
+          ? '<span class="badge badge-poi">POI</span>'
+          : '<span class="badge badge-path">PATH</span>';
+        const sub = n.node_type === 'poi'
+          ? (n.knowledge?.sub_items?.length ? `${n.knowledge.sub_items.length} 物件` : '无物件')
+          : (n.waypoints?.length ? `${n.waypoints.length} 节点` : '无节点');
+        return `<div class="node-item${currentNode && currentNode._id === n._id ? ' active' : ''}" onclick="selectNode('${n._id}')">
+          <div class="node-label">${badge} ${esc(n.label) || '(未命名)'}</div>
+          <div class="node-meta"><span>${esc(n.category)}</span><span>${sub}</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── 选择节点 ──────────────────────────
+    async function selectNode(id) {
+      const res = await fetch(`${API}/${id}`).then(r => r.json());
+      if (!res.success) return;
+      currentNode = res.data;
+      renderList();
+      renderForm();
+    }
+
+    function renderForm() {
+      if (!currentNode) return;
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('edit-form').style.display = 'block';
+
+      const n = currentNode;
+      const isPoi = n.node_type === 'poi';
+
+      document.getElementById('f-id').value = n._id;
+      document.getElementById('f-label').value = n.label || '';
+      document.getElementById('f-node-type').value = n.node_type || 'poi';
+      document.getElementById('f-category').value = n.category || 'heritage';
+      document.getElementById('f-radius').value = n.trigger_radius ?? 20;
+      document.getElementById('f-description').value = n.description || '';
+
+      // 几何
+      document.getElementById('f-geometry').textContent = n.geometry
+        ? `${n.geometry.type || n.type} — ${JSON.stringify(n.geometry.coordinates).substring(0, 200)}`
+        : '(无)';
+
+      // POI 知识
+      document.getElementById('f-know-summary').value = n.knowledge?.summary || '';
+      document.getElementById('f-know-period').value = n.knowledge?.historical_period || '';
+      document.getElementById('f-know-people').value = (n.knowledge?.related_people || []).join(', ');
+
+      // 显示/隐藏 POI / Path 区域
+      document.getElementById('sec-knowledge').style.display = isPoi ? '' : 'none';
+      document.getElementById('sec-waypoints').style.display = isPoi ? 'none' : '';
+      document.querySelectorAll('.poi-prompt').forEach(el => el.style.display = isPoi ? '' : 'none');
+      document.querySelectorAll('.path-prompt').forEach(el => el.style.display = isPoi ? 'none' : '');
+
+      // 子物件
+      const subItems = document.getElementById('sub-items');
+      subItems.innerHTML = (n.knowledge?.sub_items || []).map((s, i) =>
+        `<div class="sub-item">
+          <div class="sub-item-header"><span>物件 #${i+1}</span><button onclick="removeSubItem(${i})">×</button></div>
+          <div class="sub-row"><input value="${escAttr(s.name)}" onchange="updateSubItem(${i},'name',this.value)" placeholder="名称"><input value="${escAttr(s.position||'')}" onchange="updateSubItem(${i},'position',this.value.split(',').map(Number))" placeholder="坐标: lng,lat"></div>
+          <div class="sub-row"><input value="${escAttr(s.description||'')}" onchange="updateSubItem(${i},'description',this.value)" placeholder="描述"></div>
+          <div class="sub-row"><input value="${escAttr(s.visual_clue||'')}" onchange="updateSubItem(${i},'visual_clue',this.value)" placeholder="VLM 视觉线索"></div>
+        </div>`
+      ).join('');
+
+      // 故事
+      const stories = document.getElementById('stories');
+      stories.innerHTML = (n.knowledge?.stories || []).map((s, i) =>
+        `<div class="sub-item">
+          <div class="sub-item-header"><span>故事 #${i+1}</span><button onclick="removeStory(${i})">×</button></div>
+          <div class="sub-row"><input value="${escAttr(s.title)}" onchange="updateStory(${i},'title',this.value)" placeholder="标题"></div>
+          <div class="sub-row"><input value="${escAttr(s.content||'')}" onchange="updateStory(${i},'content',this.value)" placeholder="故事内容"></div>
+        </div>`
+      ).join('');
+
+      // 关键节点
+      const waypoints = document.getElementById('waypoints');
+      waypoints.innerHTML = (n.waypoints || []).map((w, i) =>
+        `<div class="sub-item">
+          <div class="sub-item-header"><span>节点 #${w.seq||i+1}</span><button onclick="removeWaypoint(${i})">×</button></div>
+          <div class="sub-row"><input value="${w.seq||''}" onchange="updateWaypoint(${i},'seq',parseInt(this.value))" placeholder="序号"><input value="${escAttr((w.position||[]).join(','))}" onchange="updateWaypoint(${i},'position',this.value.split(',').map(Number))" placeholder="坐标: lng,lat"></div>
+          <div class="sub-row"><input value="${escAttr(w.description||'')}" onchange="updateWaypoint(${i},'description',this.value)" placeholder="描述"><select onchange="updateWaypoint(${i},'action',this.value)"><option value="">动作</option><option value="turn_left" ${w.action==='turn_left'?'selected':''}>左转</option><option value="turn_right" ${w.action==='turn_right'?'selected':''}>右转</option><option value="pass_by" ${w.action==='pass_by'?'selected':''}>经过</option><option value="arrive" ${w.action==='arrive'?'selected':''}>到达</option></select></div>
+          <div class="sub-row"><input value="${escAttr(w.visual_clue||'')}" onchange="updateWaypoint(${i},'visual_clue',this.value)" placeholder="视觉线索"></div>
+        </div>`
+      ).join('');
+
+      document.getElementById('f-surface').value = n.surface || '';
+      document.getElementById('f-difficulty').value = n.difficulty || '';
+
+      // 提示词
+      document.getElementById('f-p-welcome').value = n.prompts?.welcome || '';
+      document.getElementById('f-p-detail').value = n.prompts?.detail || '';
+      document.getElementById('f-p-story').value = n.prompts?.story || '';
+      document.getElementById('f-p-turn').value = n.prompts?.turn || '';
+      document.getElementById('f-p-arrive').value = n.prompts?.arrive || '';
+    }
+
+    // ── 子物件/故事/节点 编辑辅助 ────────
+    function updateSubItem(i, key, val) { if(!currentNode?.knowledge?.sub_items) return; currentNode.knowledge.sub_items[i][key] = val; }
+    function updateStory(i, key, val) { if(!currentNode?.knowledge?.stories) return; currentNode.knowledge.stories[i][key] = val; }
+    function updateWaypoint(i, key, val) { if(!currentNode?.waypoints) return; currentNode.waypoints[i][key] = val; }
+
+    function removeSubItem(i) {
+      if(!currentNode?.knowledge?.sub_items) return;
+      currentNode.knowledge.sub_items.splice(i, 1);
+      renderForm();
+    }
+    function removeStory(i) {
+      if(!currentNode?.knowledge?.stories) return;
+      currentNode.knowledge.stories.splice(i, 1);
+      renderForm();
+    }
+    function removeWaypoint(i) {
+      if(!currentNode?.waypoints) return;
+      currentNode.waypoints.splice(i, 1);
+      renderForm();
+    }
+
+    function addSubItem() {
+      if(!currentNode) return;
+      if(!currentNode.knowledge) currentNode.knowledge = {};
+      if(!currentNode.knowledge.sub_items) currentNode.knowledge.sub_items = [];
+      currentNode.knowledge.sub_items.push({ name: '', position: [], description: '', visual_clue: '' });
+      renderForm();
+    }
+    function addStory() {
+      if(!currentNode) return;
+      if(!currentNode.knowledge) currentNode.knowledge = {};
+      if(!currentNode.knowledge.stories) currentNode.knowledge.stories = [];
+      currentNode.knowledge.stories.push({ title: '', content: '' });
+      renderForm();
+    }
+    function addWaypoint() {
+      if(!currentNode) return;
+      if(!currentNode.waypoints) currentNode.waypoints = [];
+      const seq = currentNode.waypoints.length + 1;
+      currentNode.waypoints.push({ seq, position: [], description: '', action: '', visual_clue: '' });
+      renderForm();
+    }
+
+    // ── 保存 ─────────────────────────────
+    async function save() {
+      if (!currentNode) return;
+
+      const isPoi = document.getElementById('f-node-type').value === 'poi';
+
+      const body = {
+        node_type: isPoi ? 'poi' : 'path',
+        label: document.getElementById('f-label').value.trim(),
+        category: document.getElementById('f-category').value,
+        trigger_radius: parseInt(document.getElementById('f-radius').value) || 20,
+        description: document.getElementById('f-description').value.trim(),
+      };
+
+      if (isPoi) {
+        body.knowledge = {
+          summary: document.getElementById('f-know-summary').value.trim(),
+          stories: currentNode.knowledge?.stories || [],
+          sub_items: currentNode.knowledge?.sub_items || [],
+          related_people: document.getElementById('f-know-people').value.split(',').map(s => s.trim()).filter(Boolean),
+          historical_period: document.getElementById('f-know-period').value.trim(),
+        };
+        body.prompts = {
+          welcome: document.getElementById('f-p-welcome').value.trim(),
+          detail: document.getElementById('f-p-detail').value.trim(),
+          story: document.getElementById('f-p-story').value.trim(),
+        };
+      } else {
+        body.waypoints = currentNode.waypoints || [];
+        body.surface = document.getElementById('f-surface').value;
+        body.difficulty = document.getElementById('f-difficulty').value;
+        body.prompts = {
+          turn: document.getElementById('f-p-turn').value.trim(),
+          arrive: document.getElementById('f-p-arrive').value.trim(),
+        };
+      }
+
+      try {
+        const res = await fetch(`${API}/${currentNode._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then(r => r.json());
+
+        if (res.success) {
+          const msg = document.getElementById('save-msg');
+          msg.style.display = 'inline';
+          setTimeout(() => { msg.style.display = 'none'; }, 2000);
+          loadList();
+        } else {
+          alert('保存失败: ' + (res.message || '未知错误'));
+        }
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+    }
+
+    // ── 删除 ─────────────────────────────
+    async function deleteNode() {
+      if (!currentNode) return;
+      if (!confirm(`确认删除"${currentNode.label || '(未命名)'}"？`)) return;
+
+      const res = await fetch(`${API}/${currentNode._id}`, { method: 'DELETE' }).then(r => r.json());
+      if (res.success) {
+        currentNode = null;
+        document.getElementById('edit-form').style.display = 'none';
+        document.getElementById('empty-state').style.display = '';
+        loadList();
+      } else {
+        alert('删除失败');
+      }
+    }
+
+    // ── 类型切换 ─────────────────────────
+    document.getElementById('f-node-type').addEventListener('change', function() {
+      if (!currentNode) return;
+      currentNode.node_type = this.value;
+      renderForm();
+    });
+
+    // ── 筛选 ─────────────────────────────
+    document.getElementById('filter-type').addEventListener('change', loadList);
+    document.getElementById('filter-cat').addEventListener('change', loadList);
+
+    // ── 工具函数 ─────────────────────────
+    function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+    // ── 启动 ─────────────────────────────
+    loadList();
+  </script>
+</body>
+</html>

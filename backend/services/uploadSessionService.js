@@ -37,10 +37,12 @@ async function createSession(metadata) {
     throw err;
   }
 
-  // 3. 构建 images map：bearing → { fov, description, uploaded:false, path:null, ... }
+  // 3. 构建 images map：bearing(整数) → { fov, description, uploaded:false, path:null, ... }
+  //    bearing 取整作为 key（Mongoose Map 不允许 key 含 "."）
   const imagesMap = {};
   for (const img of images) {
-    imagesMap[String(img.bearing)] = {
+    const bearingKey = String(Math.round(img.bearing));
+    imagesMap[bearingKey] = {
       fov: img.fov || 90,
       description: img.description || '',
       uploaded: false,
@@ -92,7 +94,7 @@ async function markImageUploaded(sessionId, bearing, imagePath) {
   const session = await UploadSession.findOne({ session_id: sessionId });
   if (!session) return null;
 
-  const key = String(bearing);
+  const key = String(Math.round(bearing));
   const entry = session.images.get(key);
   if (!entry) {
     const err = new Error(`bearing ${bearing} not declared in metadata`);

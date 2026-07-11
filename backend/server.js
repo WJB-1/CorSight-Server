@@ -70,20 +70,32 @@ const dataRoutes = require('./routes/dataRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const navigationRoutes = require('./routes/navigationRoutes');
 const sseRoutes = require('./routes/sseRoutes');
-const tileRoutes = require('./routes/tileRoutes');
+// tileRoutes 已废弃 — 矢量瓦片方案已由高德栅格瓦片替代
+// const tileRoutes = require('./routes/tileRoutes');
+const amapTileRoutes = require('./routes/amapTileRoutes');
+const { satelliteRouter, roadnetRouter, trafficRouter } = require('./routes/amapTileRoutes');
 const logRoutes = require('./routes/logRoutes');
 const roadRoutes = require('./routes/roadRoutes');
-const guideRoutes = require('./routes/guideRoutes');
+const annotationRoutes = require('./routes/annotationRoutes');
+const heritageRoutes = require('./routes/heritageRoutes');
+// guideRoutes 暂未就绪（缺 realtimeGuideService），待后续补齐再启用
+// const guideRoutes = require('./routes/guideRoutes');
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/batch', batchRoutes);
 app.use('/api/navigation', navigationRoutes);
 app.use('/api/sse', sseRoutes);
-app.use('/api/tiles', tileRoutes);
+// app.use('/api/tiles', tileRoutes); // 已废弃
+app.use('/api/amap-tiles', amapTileRoutes);
+app.use('/api/amap-satellite', satelliteRouter());
+app.use('/api/amap-roadnet', roadnetRouter());
+app.use('/api/amap-traffic', trafficRouter());
 app.use('/api/logs', logRoutes);
 app.use('/api/road', roadRoutes);
-app.use('/api/guide', guideRoutes);
+app.use('/api/annotations', annotationRoutes);
+app.use('/api/heritage', heritageRoutes);
+// app.use('/api/guide', guideRoutes); // 待 realtimeGuideService 补齐后启用
 
 // ── 4. 健康检查 ───────────────────────────────────
 app.get('/health', (req, res) => {

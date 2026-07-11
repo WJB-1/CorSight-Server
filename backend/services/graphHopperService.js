@@ -184,6 +184,9 @@ async function startGraphHopper() {
     detached: true,
     stdio: 'ignore',
   });
+  child.on('error', (err) => {
+    console.error(`[GraphHopper] Spawn failed: ${err.message}`);
+  });
   child.unref();
   console.log(`[GraphHopper] Spawned PID: ${child.pid}`);
 }

@@ -13,4 +13,13 @@ function stream(req, res) {
   console.log(`[SSE] Client connected: ${requestId} (active: ${sseManager.getCount()})`);
 }
 
-module.exports = { stream };
+/**
+ * 全局事件流 — 监听所有广播事件（上传进度、VLM 进度等）
+ * GET /api/sse/events
+ */
+function events(req, res) {
+  sseManager.registerGlobal(res);
+  console.log(`[SSE] Global client connected`);
+}
+
+module.exports = { stream, events };

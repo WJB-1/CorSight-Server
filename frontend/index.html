@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CorSight Console</title>
-  <link href="./vendor/maplibre-gl.css" rel="stylesheet" />
-  <link rel="stylesheet" href="./src/style.css">
+  <link rel="stylesheet" href="/vendor/maplibre-gl.css" />
 </head>
 <body>
   <!-- 顶部导航 -->
@@ -14,15 +13,12 @@
     <div class="nav-links">
       <a href="#" data-page="map" class="active">地图</a>
       <a href="#" data-page="console">控制台</a>
-    </div>
-    <div class="tile-source-toggle">
-      <label for="tile-source">瓦片源：</label>
-      <select id="tile-source" aria-label="选择瓦片源">
-        <option value="segmented">分段后</option>
-        <option value="original">原始（未分段）</option>
-      </select>
-      <label style="margin-left:12px"><input type="checkbox" id="toggle-tile-layer" checked> 瓦片图层</label>
-      <label style="margin-left:8px"><input type="checkbox" id="toggle-mongo-layer" checked> MongoDB 图层</label>
+      <button id="btn-layer-switch" class="btn-layer-switch" title="切换卫星/地图">🛰️ 卫星</button>
+      <button id="btn-traffic" class="btn-layer-switch" title="显示/隐藏路况">🚦 路况</button>
+      <span class="nav-sep">|</span>
+      <button id="btn-draw-polygon" class="btn-layer-switch" title="绘制多边形标注">⬠ 画区域</button>
+      <button id="btn-draw-line" class="btn-layer-switch" title="按住 Shift 吸附到上一条路径终点">╱ 画线</button>
+      <button id="btn-draw-cancel" class="btn-layer-switch" title="取消绘制" style="display:none">✕ 取消</button>
     </div>
   </nav>
 
@@ -31,54 +27,6 @@
     <!-- 地图页面 -->
     <div id="page-map" class="page active">
       <div id="map"></div>
-      <!-- 左侧面板：节点信息 -->
-      <div id="panel-left" class="panel hidden">
-        <div class="panel-header">
-          <h3 id="panel-title">采样点详情</h3>
-          <button id="panel-close" class="btn-close">&times;</button>
-        </div>
-        <div id="panel-body"></div>
-      </div>
-      <!-- 左下角：道路图例 -->
-      <div id="road-legend">
-        <span class="legend-item"><span class="legend-color" style="background:#78909c"></span>高速/快速路</span>
-        <span class="legend-item"><span class="legend-color" style="background:#90a4ae"></span>主干道</span>
-        <span class="legend-item"><span class="legend-color" style="background:#b0bec5"></span>支路</span>
-        <span class="legend-item"><span class="legend-color" style="background:#2196f3"></span>人行道</span>
-        <span class="legend-item"><span class="legend-color" style="background:#1565c0"></span>步行街</span>
-        <span class="legend-item"><span class="legend-color" style="background:#e53935"></span>台阶</span>
-        <span class="legend-item"><span class="legend-color" style="background:#7c4dff"></span>公共交通</span>
-      </div>
-      <!-- 右下角：路线规划 -->
-      <div id="route-box">
-        <h4>路线规划</h4>
-        <div id="route-picks">
-          <div class="route-pick">
-            <span class="label">起点</span>
-            <span id="route-origin" class="value">点击地图选择</span>
-          </div>
-          <div class="route-pick">
-            <span class="label">终点</span>
-            <span id="route-dest" class="value">点击地图选择</span>
-          </div>
-        </div>
-        <div class="route-options">
-          <label><input type="checkbox" id="opt-preview" checked> 行前预览</label>
-          <label><input type="checkbox" id="opt-sse" checked> SSE 实时</label>
-          <select id="opt-engine">
-            <option value="amap">高德</option>
-            <option value="graphhopper">GraphHopper</option>
-          </select>
-          <label class="debug-toggle"><input type="checkbox" id="opt-debug"> 🐛 调试</label>
-        </div>
-        <button id="btn-route" class="btn-primary" disabled>开始规划</button>
-        <div id="route-status"></div>
-      </div>
-      <!-- SSE 进度条 -->
-      <div id="sse-progress" class="hidden">
-        <div id="sse-bar"></div>
-        <span id="sse-text"></span>
-      </div>
     </div>
 
     <!-- 控制台页面 -->
@@ -91,7 +39,7 @@
     </div>
   </main>
 
-  <script src="./vendor/maplibre-gl.js"></script>
+  <script src="/vendor/maplibre-gl.js"></script>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

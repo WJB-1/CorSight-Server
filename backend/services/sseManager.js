@@ -16,6 +16,7 @@
  */
 
 const clients = new Map(); // requestId → { res, createdAt }
+const globalClients = new Set(); // 广播客户端（监听所有推送）
 
 /**
  * 注册一个 SSE 连接
@@ -99,4 +100,39 @@ function cleanup(timeoutMs = 600000) {
   }
 }
 
-module.exports = { register, push, close, getCount, cleanup };
+/**
+ * 注册一个全局广播客户端（监听所有推送事件）
+ * @param {object} res — Express response 对象
+ */
+function registerGlobal(res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  res.write(`data: ${JSON.stringify({ event: 'connected', type: 'global' })}\n\n`);
+  globalClients.add(res);
+
+  res.on('close', () => {
+    globalClients.delete(res);
+  });
+}
+
+/**
+ * 向所有全局客户端广播事件
+ * @param {object} data — 要广播的数据
+ */
+function broadcast(data) {
+  const msg = `data: ${JSON.stringify(data)}\n\n`;
+  for (const res of globalClients) {
+    try {
+      res.write(msg);
+    } catch (_) {
+      globalClients.delete(res);
+    }
+  }
+}
+
+module.exports = { register, push, close, getCount, cleanup, registerGlobal, broadcast };

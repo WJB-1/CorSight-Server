@@ -56,9 +56,10 @@ const semanticTagSchema = new mongoose.Schema({
   match_distance_m: { type: Number, default: null },
 
   // ── 注入状态 ───────────────────────────────────
+  // pending → analyzed（VLM 分析完成）→ patched（OSM 注入完成）
   status: {
     type: String,
-    enum: ['pending', 'patched', 'failed'],
+    enum: ['pending', 'analyzed', 'patched', 'failed'],
     default: 'pending',
     index: true,
   },

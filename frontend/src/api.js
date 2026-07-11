@@ -51,4 +51,21 @@ export const api = {
   logStream() {
     return new EventSource(`${BASE}/api/logs/stream`);
   },
+
+  // 通用请求方法
+  get: (path) => request('GET', path),
+  post: (path, body) => request('POST', path, body),
+  put: (path, body) => request('PUT', path, body),
+  delete: (path) => request('DELETE', path),
+
+  // 标注
+  getAnnotations: (bbox) => {
+    const params = bbox
+      ? `?west=${bbox.west}&south=${bbox.south}&east=${bbox.east}&north=${bbox.north}`
+      : '';
+    return request('GET', `/api/annotations${params}`);
+  },
+  createAnnotation: (data) => request('POST', '/api/annotations', data),
+  updateAnnotation: (id, data) => request('PUT', `/api/annotations/${id}`, data),
+  deleteAnnotation: (id) => request('DELETE', `/api/annotations/${id}`),
 };

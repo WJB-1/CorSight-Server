@@ -29,7 +29,31 @@ const upload = multer({
 
 // ── 路由 ──────────────────────────────────────────
 router.post('/metadata', metadataController.create);
-router.post('/image', upload.single('image'), imageUploadController.upload);
+// 兼容安卓端（file）和前端（image）两种文件字段名
+router.post('/image', upload.any(), imageUploadController.upload);
 router.get('/session/:sessionId', imageUploadController.getStatus);
+
+// multer 错误处理（文件过大、类型不支持等）
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const messages = {
+      LIMIT_FILE_SIZE: '文件大小超过限制',
+      LIMIT_UNEXPECTED_FILE: '不支持的文件字段',
+    };
+    return res.status(400).json({
+      success: false,
+      error: err.code,
+      message: messages[err.code] || err.message,
+    });
+  }
+  if (err) {
+    return res.status(400).json({
+      success: false,
+      error: 'upload_error',
+      message: err.message,
+    });
+  }
+  next();
+});
 
 module.exports = router;

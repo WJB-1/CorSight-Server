@@ -1,21 +1,18 @@
 /**
- * 地图模块（MapLibre GL）
+ * 地图模块（MapLibre GL + 高德底图）
  *
- * 双层渲染架构：
- * - 瓦片底图层：水系、建筑、标注（来自 guangzhou_full.mbtiles，纯装饰）
- * - 道路图层：来自 MongoDB osm_ways（GeoJSON，按视口动态加载，唯一数据源）
- *
- * 交互层（roadInteraction.js）直接查询道路图层的 feature，不需要查后端。
+ * 支持标准地图 / 卫星图切换，一次只显示一种底图。
+ * 业务图层：GeoJSON（采样点、路线、扇形、标记），坐标从 WGS-84 转为 GCJ-02 叠加。
  */
 
-import { getTileLayers } from './tileRenderer.js';
+import { wgs84ToGcj02 } from './coordTransform.js';
 import { api } from './api.js';
 
 let map = null;
 let pendingPoints = null;
 let onPointClick = null;
 let onMapClick = null;
-let mongoRoadDebounce = null;
+let currentStyle = 'standard'; // 'standard' | 'satellite'
 
 // ── 初始化 ───────────────────────────────────────
 
@@ -28,50 +25,48 @@ export function initMap(container, opts = {}) {
   const style = {
     version: 8,
     sources: {
-      // 瓦片底图（装饰用，不含道路交互）
-      openmaptiles: {
-        type: 'vector',
-        tiles: [`${origin}/api/tiles/{z}/{x}/{y}.pbf`],
+      // 标准地图（默认）
+      'amap-standard': {
+        type: 'raster',
+        tiles: [`${origin}/api/amap-tiles/{z}/{x}/{y}.png`],
+        tileSize: 256,
         minzoom: 0,
-        maxzoom: 15,
+        maxzoom: 18,
+        attribution: '© 高德地图',
       },
-      // MongoDB 道路图层（唯一数据源，按视口动态加载）
-      'mongo-roads': {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
+      // 卫星图
+      'amap-satellite': {
+        type: 'raster',
+        tiles: [`${origin}/api/amap-satellite/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 0,
+        maxzoom: 18,
+        attribution: '© 高德地图',
+      },
+      // 路况半透明叠加（默认隐藏，高德仅支持到 z=18，禁止过度放大）
+      'amap-traffic': {
+        type: 'raster',
+        tiles: [`${origin}/api/amap-traffic/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 10,
+        maxzoom: 18,
+        maxoverzoom: 1,
       },
     },
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-    layers: getTileLayers(),
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': '#f8f9fa' } },
+      { id: 'amap-base', type: 'raster', source: 'amap-standard', paint: { 'raster-opacity': 1 } },
+      { id: 'amap-traffic-layer', type: 'raster', source: 'amap-traffic', minzoom: 10, maxzoom: 18, paint: { 'raster-opacity': 1 }, layout: { visibility: 'none' } },
+    ],
   };
 
-  map = new maplibregl.Map({ container, style, center: [113.33, 23.14], zoom: 14, maxZoom: 18 });
+  // 英德市九龙镇金造村（GCJ-02），直接使用无需转换
+  map = new maplibregl.Map({ container, style, center: [112.961714, 24.107455], zoom: 16, maxZoom: 18 });
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
   map.on('load', () => {
-    // ── MongoDB 道路图层（在瓦片之上） ─────────
-    map.addLayer({
-      id: 'mongo-road-line',
-      type: 'line',
-      source: 'mongo-roads',
-      paint: {
-        'line-color': [
-          'match', ['get', 'highway'],
-          'footway', '#2196f3',
-          'pedestrian', '#1565c0',
-          'steps', '#e53935',
-          'path', '#42a5f5',
-          'crossing', '#f39c12',
-          'residential', '#90a4ae',
-          'living_street', '#b0bec5',
-          /* default */ '#94a3b8',
-        ],
-        'line-width': 3,
-        'line-opacity': 0.9,
-      },
-    });
-
-    // 高亮图层（悬停用）
+    // ── 高亮图层（悬停用） ───────────────────────
     map.addSource('road-highlight', { type: 'geojson', data: emptyFC() });
     map.addLayer({
       id: 'road-highlight',
@@ -116,13 +111,6 @@ export function initMap(container, opts = {}) {
     map.on('mouseenter', 'points-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'points-circle', () => { map.getCanvas().style.cursor = ''; });
 
-    // ── MongoDB 道路按视口动态加载 ─────────────
-    loadMongoRoads();
-    map.on('moveend', () => {
-      clearTimeout(mongoRoadDebounce);
-      mongoRoadDebounce = setTimeout(loadMongoRoads, 500);
-    });
-
     // 补渲染迟到的采样点
     if (pendingPoints) { renderPoints(pendingPoints); pendingPoints = null; }
   });
@@ -130,23 +118,72 @@ export function initMap(container, opts = {}) {
   return map;
 }
 
-// ── MongoDB 道路加载 ─────────────────────────────
+// ── 图层切换 ─────────────────────────────────────
 
-async function loadMongoRoads() {
-  if (!map) return;
-  const bounds = map.getBounds();
-  try {
-    const result = await api.getRoadGeoJSON(
-      bounds.getWest(), bounds.getSouth(),
-      bounds.getEast(), bounds.getNorth(),
-      5000
+/**
+ * 切换底图：'standard' | 'satellite'
+ *
+ * 通过控制两个 raster 图层的可见性实现切换。
+ * 初始化时只创建了 'amap-base'（standard），首次切卫星时创建 satellite 图层。
+ */
+let satelliteLayerCreated = false;
+
+export function switchBaseMap(styleName) {
+  if (!map) return currentStyle;
+
+  if (styleName === 'satellite' && !satelliteLayerCreated) {
+    // 首次切卫星：创建 satellite 图层并隐藏 standard
+    map.addLayer(
+      { id: 'amap-satellite-layer', type: 'raster', source: 'amap-satellite', paint: { 'raster-opacity': 1 } },
+      'amap-base' // 插入到 amap-base 之前（即更底层）
     );
-    if (result.success && result.data && map.getSource('mongo-roads')) {
-      map.getSource('mongo-roads').setData(result.data);
-    }
-  } catch (err) {
-    console.warn('[Map] Road load failed:', err.message);
+    satelliteLayerCreated = true;
   }
+
+  if (styleName === 'satellite') {
+    map.setLayoutProperty('amap-base', 'visibility', 'none');
+    map.setLayoutProperty('amap-satellite-layer', 'visibility', 'visible');
+    map.setPaintProperty('background', 'background-color', '#000');
+  } else {
+    map.setLayoutProperty('amap-base', 'visibility', 'visible');
+    if (satelliteLayerCreated) {
+      map.setLayoutProperty('amap-satellite-layer', 'visibility', 'none');
+    }
+    map.setPaintProperty('background', 'background-color', '#f8f9fa');
+  }
+
+  currentStyle = styleName;
+
+  // 同步按钮 UI
+  const btn = document.getElementById('btn-layer-switch');
+  if (btn) {
+    btn.textContent = styleName === 'satellite' ? '🗺️ 地图' : '🛰️ 卫星';
+    btn.classList.toggle('active', styleName === 'satellite');
+  }
+
+  return currentStyle;
+}
+
+export function getCurrentStyle() {
+  return currentStyle;
+}
+
+// ── 路况 ─────────────────────────────────────────
+
+let trafficVisible = false;
+
+export function toggleTraffic() {
+  if (!map) return false;
+  trafficVisible = !trafficVisible;
+  const vis = trafficVisible ? 'visible' : 'none';
+  map.setLayoutProperty('amap-traffic-layer', 'visibility', vis);
+
+  const btn = document.getElementById('btn-traffic');
+  if (btn) {
+    btn.textContent = trafficVisible ? '🚦 路况 ✓' : '🚦 路况';
+    btn.classList.toggle('active', trafficVisible);
+  }
+  return trafficVisible;
 }
 
 // ── 采样点 ───────────────────────────────────────
@@ -155,8 +192,9 @@ export function renderPoints(points) {
   if (!map || !map.getSource('points')) { pendingPoints = points; return; }
   const features = points.map((p) => {
     const coords = p.location?.coordinates || [0, 0];
+    const gcjCoords = toGcj02(coords[0], coords[1]);
     return {
-      type: 'Feature', geometry: { type: 'Point', coordinates: coords },
+      type: 'Feature', geometry: { type: 'Point', coordinates: gcjCoords },
       properties: {
         point_id: p.point_id,
         hasVlm: p.images?.some((i) => i.osm_tags && Object.keys(i.osm_tags).length > 0) || false,
@@ -195,15 +233,24 @@ export function clearSectors() {
 
 export function renderRoute(coords, origin, dest) {
   if (!map) return;
+
+  const gcjCoords = coords.map((c) => toGcj02(c[0], c[1]));
+
   if (map.getSource('route')) {
-    map.getSource('route').setData(coords.length > 1 ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} }] } : emptyFC());
+    map.getSource('route').setData(gcjCoords.length > 1 ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: gcjCoords }, properties: {} }] } : emptyFC());
   }
   const markers = [];
-  if (origin) markers.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [origin.lng, origin.lat] }, properties: { label: '起点' } });
-  if (dest) markers.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [dest.lng, dest.lat] }, properties: { label: '终点' } });
+  if (origin) {
+    const [oLng, oLat] = toGcj02(origin.lng, origin.lat);
+    markers.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [oLng, oLat] }, properties: { label: '起点' } });
+  }
+  if (dest) {
+    const [dLng, dLat] = toGcj02(dest.lng, dest.lat);
+    markers.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [dLng, dLat] }, properties: { label: '终点' } });
+  }
   if (map.getSource('markers')) map.getSource('markers').setData({ type: 'FeatureCollection', features: markers });
-  if (coords.length > 0) {
-    const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
+  if (gcjCoords.length > 0) {
+    const bounds = gcjCoords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(gcjCoords[0], gcjCoords[0]));
     map.fitBounds(bounds, { padding: 80 });
   }
 }
@@ -213,7 +260,7 @@ export function clearRoute() {
   if (map?.getSource('markers')) map.getSource('markers').setData(emptyFC());
 }
 
-// ── 道路高亮（供 roadInteraction 调用） ──────────
+// ── 道路高亮 ─────────────────────────────────────
 
 export function highlightFeature(feature) {
   if (!map?.getSource('road-highlight')) return;
@@ -227,7 +274,7 @@ export function clearHighlight() {
   highlightFeature(null);
 }
 
-// ── 调试：坐标校准对比 ───────────────────────────
+// ── 调试 ─────────────────────────────────────────
 
 export function renderDebugCalibration(dbPoints, calibratedPoints, colors = {}) {
   if (!map) return;
@@ -266,6 +313,11 @@ export function clearDebugCalibration() {
 function addSource(id, def) { map.addSource(id, def); }
 function addLayer(def) { map.addLayer(def); }
 function emptyFC() { return { type: 'FeatureCollection', features: [] }; }
+
+function toGcj02(lng, lat) {
+  const [glng, glat] = wgs84ToGcj02(lng, lat);
+  return [glng, glat];
+}
 
 function computeSectorCoords(lng, lat, bearing, fov, radiusDeg) {
   const halfFov = fov / 2;

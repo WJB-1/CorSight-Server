@@ -81,21 +81,18 @@ async function writebackResults(session, resultMap) {
   // 合并标签
   const merged = tagMergeService.mergeAll(imagesArray);
 
-  // 持久化
+  // 更新已存在的 SemanticTag（上传时已创建，这里回填 VLM 分析结果）
   await SemanticTag.findOneAndUpdate(
     { point_id: session.point_id },
     {
-      point_id: session.point_id,
-      location: session.location,
-      crs: session.crs || 'GCJ02',
-      scene_description: session.scene_description,
-      images: imagesArray,
-      merged_osm_tags: merged.osm_tags,
-      merged_description: merged.description,
-      status: 'pending',
-      created_at: new Date(),
-    },
-    { upsert: true, new: true }
+      $set: {
+        images: imagesArray,
+        merged_osm_tags: merged.osm_tags,
+        merged_description: merged.description,
+        status: 'analyzed',
+        updated_at: new Date(),
+      },
+    }
   );
 
   session.status = 'done';
